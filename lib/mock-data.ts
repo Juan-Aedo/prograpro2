@@ -1,0 +1,328 @@
+import type { Activity, WeatherData, Booking } from "./types";
+
+// Datos mock de actividades
+export const actividades: Activity[] = [
+  {
+    id: "1",
+    nombre: "Cine Hoyts — Estreno Dune: Parte 3",
+    descripcion:
+      "Disfruta del esperado estreno de Dune: Parte 3 en sala IMAX con sonido Dolby Atmos. Una experiencia cinematográfica inmersiva que no te puedes perder.",
+    categoria: "cine",
+    imagen: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&q=80",
+    ubicacion: {
+      direccion: "Av. Kennedy 5413, Las Condes",
+      lat: -33.3988,
+      lng: -70.5754,
+    },
+    horario: {
+      apertura: "14:00",
+      cierre: "23:30",
+      diasDisponibles: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"],
+    },
+    precio: { moneda: "CLP", valor: 7500, esPorPersona: true },
+    rating: 4.7,
+    totalResenas: 328,
+    afluencia: "alta",
+    tags: ["IMAX", "estreno", "ciencia ficción"],
+    destacada: true,
+    enTendencia: true,
+  },
+  {
+    id: "2",
+    nombre: "Parque Bicentenario — Picnic al aire libre",
+    descripcion:
+      "Un hermoso parque urbano ideal para hacer picnic, pasear con mascotas o simplemente relajarte junto al lago. Cuenta con áreas verdes, juegos infantiles y senderos para caminar.",
+    categoria: "parques",
+    imagen: "https://images.unsplash.com/photo-1585938389612-a552a28d6914?w=800&q=80",
+    ubicacion: {
+      direccion: "Av. Bicentenario 3800, Vitacura",
+      lat: -33.3954,
+      lng: -70.5985,
+    },
+    horario: {
+      apertura: "07:00",
+      cierre: "20:00",
+      diasDisponibles: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"],
+    },
+    precio: { moneda: "CLP", valor: 0, esPorPersona: false },
+    rating: 4.8,
+    totalResenas: 1205,
+    afluencia: "media",
+    tags: ["gratis", "mascotas", "familiar", "aire libre"],
+    destacada: true,
+    enTendencia: false,
+  },
+  {
+    id: "3",
+    nombre: "Teatro Municipal — La Traviata",
+    descripcion:
+      "Presentación de la ópera clásica de Verdi interpretada por el elenco del Teatro Municipal de Santiago. Una velada elegante con música de clase mundial.",
+    categoria: "teatro",
+    imagen: "https://images.unsplash.com/photo-1507924538820-ede94a04019d?w=800&q=80",
+    ubicacion: {
+      direccion: "Agustinas 794, Santiago Centro",
+      lat: -33.4417,
+      lng: -70.6505,
+    },
+    horario: {
+      apertura: "19:00",
+      cierre: "22:00",
+      diasDisponibles: ["Viernes", "Sábado", "Domingo"],
+    },
+    precio: { moneda: "CLP", valor: 25000, esPorPersona: true },
+    rating: 4.9,
+    totalResenas: 567,
+    afluencia: "alta",
+    tags: ["ópera", "cultura", "elegante"],
+    destacada: true,
+    enTendencia: true,
+  },
+  {
+    id: "4",
+    nombre: "Museo de Arte Contemporáneo",
+    descripcion:
+      "Exposición temporal 'Futuros Posibles' — una colección de artistas latinoamericanos que exploran la relación entre tecnología y naturaleza a través de instalaciones interactivas.",
+    categoria: "museos",
+    imagen: "https://images.unsplash.com/photo-1554907984-15263bfd63bd?w=800&q=80",
+    ubicacion: {
+      direccion: "Parque Forestal s/n, Santiago Centro",
+      lat: -33.4372,
+      lng: -70.6422,
+    },
+    horario: {
+      apertura: "10:00",
+      cierre: "18:00",
+      diasDisponibles: ["Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"],
+    },
+    precio: { moneda: "CLP", valor: 3000, esPorPersona: true },
+    rating: 4.5,
+    totalResenas: 892,
+    afluencia: "baja",
+    tags: ["arte", "exposición", "interactivo"],
+    destacada: false,
+    enTendencia: false,
+  },
+  {
+    id: "5",
+    nombre: "Restaurante Boragó — Experiencia Gastronómica",
+    descripcion:
+      "Cena de degustación en uno de los mejores restaurantes de Latinoamérica. Cocina de autor con ingredientes endémicos chilenos en un ambiente sofisticado.",
+    categoria: "gastronomia",
+    imagen: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80",
+    ubicacion: {
+      direccion: "Av. San Josemaría Escrivá de Balaguer 5970, Vitacura",
+      lat: -33.3835,
+      lng: -70.5672,
+    },
+    horario: {
+      apertura: "19:30",
+      cierre: "23:00",
+      diasDisponibles: ["Martes", "Miércoles", "Jueves", "Viernes", "Sábado"],
+    },
+    precio: { moneda: "CLP", valor: 85000, esPorPersona: true },
+    rating: 4.9,
+    totalResenas: 245,
+    afluencia: "media",
+    tags: ["fine dining", "degustación", "premium"],
+    destacada: true,
+    enTendencia: true,
+  },
+  {
+    id: "6",
+    nombre: "Escalada en Muro Indoor — The Climb",
+    descripcion:
+      "Centro de escalada con muros de diferentes niveles de dificultad. Incluye equipamiento, clase introductoria para principiantes y zona de boulder.",
+    categoria: "deportes",
+    imagen: "https://images.unsplash.com/photo-1522163182402-834f871fd851?w=800&q=80",
+    ubicacion: {
+      direccion: "Av. Italia 1234, Providencia",
+      lat: -33.4445,
+      lng: -70.6157,
+    },
+    horario: {
+      apertura: "09:00",
+      cierre: "22:00",
+      diasDisponibles: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"],
+    },
+    precio: { moneda: "CLP", valor: 12000, esPorPersona: true },
+    rating: 4.6,
+    totalResenas: 178,
+    afluencia: "baja",
+    tags: ["deporte", "aventura", "principiantes"],
+    destacada: false,
+    enTendencia: false,
+  },
+  {
+    id: "7",
+    nombre: "Festival de Jazz en el Parque",
+    descripcion:
+      "Festival al aire libre con bandas de jazz nacionales e internacionales. Trae tu manta, disfruta de food trucks y música en vivo bajo las estrellas.",
+    categoria: "musica",
+    imagen: "https://images.unsplash.com/photo-1511192336575-5a79af67a629?w=800&q=80",
+    ubicacion: {
+      direccion: "Parque O'Higgins, Santiago",
+      lat: -33.4625,
+      lng: -70.6555,
+    },
+    horario: {
+      apertura: "17:00",
+      cierre: "23:00",
+      diasDisponibles: ["Sábado", "Domingo"],
+    },
+    precio: { moneda: "CLP", valor: 15000, esPorPersona: true },
+    rating: 4.7,
+    totalResenas: 432,
+    afluencia: "alta",
+    tags: ["jazz", "festival", "aire libre", "food trucks"],
+    destacada: true,
+    enTendencia: true,
+  },
+  {
+    id: "8",
+    nombre: "Taller de Cerámica Artesanal",
+    descripcion:
+      "Aprende técnicas de cerámica en torno y modelado a mano. Incluye materiales, horneado de piezas y una bebida caliente. Ideal para desconectarte de la rutina.",
+    categoria: "talleres",
+    imagen: "https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=800&q=80",
+    ubicacion: {
+      direccion: "Constitución 62, Providencia",
+      lat: -33.4267,
+      lng: -70.6162,
+    },
+    horario: {
+      apertura: "10:00",
+      cierre: "19:00",
+      diasDisponibles: ["Miércoles", "Jueves", "Viernes", "Sábado"],
+    },
+    precio: { moneda: "CLP", valor: 22000, esPorPersona: true },
+    rating: 4.8,
+    totalResenas: 89,
+    afluencia: "baja",
+    tags: ["taller", "manualidades", "relax"],
+    destacada: false,
+    enTendencia: false,
+  },
+  {
+    id: "9",
+    nombre: "Kayak en el Cajón del Maipo",
+    descripcion:
+      "Aventura de medio día en kayak por los rápidos del río Maipo. Incluye transporte, equipamiento completo, guía certificado y snack energético.",
+    categoria: "aire-libre",
+    imagen: "https://images.unsplash.com/photo-1472745942893-4b9f730c7668?w=800&q=80",
+    ubicacion: {
+      direccion: "Camino al Volcán km 25, San José de Maipo",
+      lat: -33.6389,
+      lng: -70.3533,
+    },
+    horario: {
+      apertura: "08:00",
+      cierre: "14:00",
+      diasDisponibles: ["Sábado", "Domingo"],
+    },
+    precio: { moneda: "CLP", valor: 35000, esPorPersona: true },
+    rating: 4.8,
+    totalResenas: 156,
+    afluencia: "media",
+    tags: ["aventura", "naturaleza", "deporte acuático"],
+    destacada: true,
+    enTendencia: false,
+  },
+  {
+    id: "10",
+    nombre: "Bar Speakeasy — Cócteles de Autor",
+    descripcion:
+      "Bar secreto con entrada oculta. Cócteles de autor preparados por mixólogos premiados en un ambiente de los años 20. Reserva obligatoria.",
+    categoria: "nightlife",
+    imagen: "https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=800&q=80",
+    ubicacion: {
+      direccion: "Bombero Ossa 1010, Santiago Centro",
+      lat: -33.4396,
+      lng: -70.6445,
+    },
+    horario: {
+      apertura: "20:00",
+      cierre: "02:00",
+      diasDisponibles: ["Jueves", "Viernes", "Sábado"],
+    },
+    precio: { moneda: "CLP", valor: 9000, esPorPersona: true },
+    rating: 4.6,
+    totalResenas: 312,
+    afluencia: "alta",
+    tags: ["cócteles", "speakeasy", "nocturno"],
+    destacada: false,
+    enTendencia: true,
+  },
+];
+
+// Datos mock del clima
+export const climaMock: WeatherData = {
+  temperatura: 22,
+  sensacionTermica: 20,
+  descripcion: "Parcialmente nublado",
+  icono: "partly-cloudy",
+  humedad: 55,
+  viento: 12,
+  ciudad: "Santiago",
+};
+
+// Datos mock de reservas
+export const reservasMock: Booking[] = [
+  {
+    id: "b1",
+    actividadId: "3",
+    actividad: actividades[2],
+    fecha: "2026-04-15",
+    hora: "19:00",
+    personas: 2,
+    estado: "confirmada",
+    total: 50000,
+  },
+  {
+    id: "b2",
+    actividadId: "7",
+    actividad: actividades[6],
+    fecha: "2026-04-12",
+    hora: "17:00",
+    personas: 4,
+    estado: "pendiente",
+    total: 60000,
+  },
+  {
+    id: "b3",
+    actividadId: "1",
+    actividad: actividades[0],
+    fecha: "2026-04-05",
+    hora: "20:00",
+    personas: 2,
+    estado: "completada",
+    total: 15000,
+  },
+];
+
+// Mapa de iconos para categorías
+export const categoriaIconos: Record<string, string> = {
+  cine: "Film",
+  teatro: "Drama",
+  parques: "Trees",
+  gastronomia: "UtensilsCrossed",
+  museos: "Landmark",
+  deportes: "Dumbbell",
+  musica: "Music",
+  "aire-libre": "Mountain",
+  nightlife: "Wine",
+  talleres: "Palette",
+};
+
+// Etiquetas legibles para categorías
+export const categoriaLabels: Record<string, string> = {
+  cine: "Cine",
+  teatro: "Teatro",
+  parques: "Parques",
+  gastronomia: "Gastronomía",
+  museos: "Museos",
+  deportes: "Deportes",
+  musica: "Música",
+  "aire-libre": "Aire Libre",
+  nightlife: "Vida Nocturna",
+  talleres: "Talleres",
+};
