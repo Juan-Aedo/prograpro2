@@ -2,70 +2,65 @@
 
 import Link from "next/link";
 import {
-  Film,
-  Drama,
-  Trees,
-  UtensilsCrossed,
-  Landmark,
-  Dumbbell,
-  Music,
-  Mountain,
-  Wine,
-  Palette,
+  Film, Drama, Trees, UtensilsCrossed, Landmark,
+  Dumbbell, Music, Mountain, Wine, Palette,
 } from "lucide-react";
 
 const iconosMapa: Record<string, React.ElementType> = {
-  cine: Film,
-  teatro: Drama,
-  parques: Trees,
-  gastronomia: UtensilsCrossed,
-  museos: Landmark,
-  deportes: Dumbbell,
-  musica: Music,
+  cine:         Film,
+  teatro:       Drama,
+  parques:      Trees,
+  gastronomia:  UtensilsCrossed,
+  museos:       Landmark,
+  deportes:     Dumbbell,
+  musica:       Music,
   "aire-libre": Mountain,
-  nightlife: Wine,
-  talleres: Palette,
-};
-
-const coloresMapa: Record<string, { bg: string; text: string; hover: string }> = {
-  cine: { bg: "bg-purple-50", text: "text-purple-600", hover: "hover:bg-purple-100" },
-  teatro: { bg: "bg-rose-50", text: "text-rose-600", hover: "hover:bg-rose-100" },
-  parques: { bg: "bg-emerald-50", text: "text-emerald-600", hover: "hover:bg-emerald-100" },
-  gastronomia: { bg: "bg-amber-50", text: "text-amber-600", hover: "hover:bg-amber-100" },
-  museos: { bg: "bg-blue-50", text: "text-blue-600", hover: "hover:bg-blue-100" },
-  deportes: { bg: "bg-orange-50", text: "text-orange-600", hover: "hover:bg-orange-100" },
-  musica: { bg: "bg-indigo-50", text: "text-indigo-600", hover: "hover:bg-indigo-100" },
-  "aire-libre": { bg: "bg-teal-50", text: "text-teal-600", hover: "hover:bg-teal-100" },
-  nightlife: { bg: "bg-fuchsia-50", text: "text-fuchsia-600", hover: "hover:bg-fuchsia-100" },
-  talleres: { bg: "bg-cyan-50", text: "text-cyan-600", hover: "hover:bg-cyan-100" },
+  nightlife:    Wine,
+  talleres:     Palette,
 };
 
 interface CategoryScrollerProps {
   categorias: [string, string][];
 }
 
-export function CategoryScroller({ categorias }: CategoryScrollerProps) {
+// Chip individual reutilizable
+function CategoryChip({ keyVal, label }: { keyVal: string; label: string }) {
+  const Icono = iconosMapa[keyVal] ?? Film;
   return (
-    <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
-      {categorias.map(([key, label]) => {
-        const Icono = iconosMapa[key] ?? Film;
-        const colores = coloresMapa[key] ?? { bg: "bg-surface-50", text: "text-surface-600", hover: "hover:bg-surface-100" };
+    <Link
+      href={`/explore?categoria=${keyVal}`}
+      className="flex items-center gap-2 rounded-full border border-ink-900/12 bg-white px-5 py-2.5 text-sm font-medium text-ink-700 whitespace-nowrap
+        transition-all duration-150 ease-out
+        hover:border-ink-900/30 hover:shadow-offset-sm hover:-translate-x-0.5 hover:-translate-y-0.5
+        cursor-pointer flex-shrink-0"
+    >
+      <Icono className="h-4 w-4 text-teal-500" />
+      {label}
+    </Link>
+  );
+}
 
-        return (
-          <Link
-            key={key}
-            href={`/explore?categoria=${key}`}
-            className={`flex flex-col items-center gap-2 rounded-2xl ${colores.bg} ${colores.hover} p-4 min-w-[5.5rem] transition-all duration-200 cursor-pointer group`}
-          >
-            <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${colores.bg} ${colores.text} transition-transform duration-200 group-hover:scale-110`}>
-              <Icono className="h-5 w-5" />
-            </div>
-            <span className={`text-xs font-medium ${colores.text} whitespace-nowrap`}>
-              {label}
-            </span>
-          </Link>
-        );
-      })}
+export function CategoryScroller({ categorias }: CategoryScrollerProps) {
+  // Duplicamos los items para el efecto de loop continuo sin salto
+  const items = [...categorias, ...categorias];
+  const itemsRev = [...categorias].reverse();
+  const itemsRevLoop = [...itemsRev, ...itemsRev];
+
+  return (
+    <div className="space-y-3 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_80px,black_calc(100%-80px),transparent)]">
+      {/* Fila 1 — izquierda a derecha */}
+      <div className="flex gap-3 marquee-track animate-marquee">
+        {items.map(([key, label], i) => (
+          <CategoryChip key={`row1-${key}-${i}`} keyVal={key} label={label} />
+        ))}
+      </div>
+
+      {/* Fila 2 — derecha a izquierda */}
+      <div className="flex gap-3 marquee-track animate-marquee-rev">
+        {itemsRevLoop.map(([key, label], i) => (
+          <CategoryChip key={`row2-${key}-${i}`} keyVal={key} label={label} />
+        ))}
+      </div>
     </div>
   );
 }

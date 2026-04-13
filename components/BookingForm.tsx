@@ -20,7 +20,6 @@ export function BookingForm({ actividad }: BookingFormProps) {
 
   const handleReservar = (e: React.FormEvent) => {
     e.preventDefault();
-    // Simula reserva exitosa
     setReservaExitosa(true);
     setTimeout(() => setReservaExitosa(false), 3000);
   };
@@ -29,42 +28,34 @@ export function BookingForm({ actividad }: BookingFormProps) {
 
   return (
     <div className="card p-5">
-      <h3 className="text-lg font-bold text-surface-900 mb-4">
+      <h3 className="font-display text-xl font-bold text-ink-900 mb-4">
         {esGratis ? "Planificar Visita" : "Reservar"}
       </h3>
 
       {reservaExitosa ? (
         <div className="flex flex-col items-center gap-3 py-8 animate-scale-in">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100">
-            <Check className="h-7 w-7 text-emerald-600" />
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 border border-teal-300">
+            <Check className="h-7 w-7 text-teal-600" />
           </div>
-          <p className="text-sm font-semibold text-emerald-700">
-            ¡Reserva confirmada!
-          </p>
-          <p className="text-xs text-surface-500">
-            Revisa tus reservas para más detalles
-          </p>
+          <p className="text-sm font-semibold text-teal-700">¡Reserva confirmada!</p>
+          <p className="text-xs text-ink-500">Revisa tus reservas para más detalles</p>
         </div>
       ) : (
         <form onSubmit={handleReservar} className="space-y-4">
-          {/* Fecha */}
           <div>
-            <label className="flex items-center gap-1.5 text-xs font-medium text-surface-500 mb-1.5">
+            <label className="flex items-center gap-1.5 text-xs font-medium text-ink-500 mb-1.5">
               <Calendar className="h-3.5 w-3.5" />
               Fecha
             </label>
             <input
-              type="date"
-              value={fecha}
+              type="date" value={fecha}
               onChange={(e) => setFecha(e.target.value)}
-              required
-              className="input-field cursor-pointer"
+              required className="input-field cursor-pointer"
             />
           </div>
 
-          {/* Personas */}
           <div>
-            <label className="flex items-center gap-1.5 text-xs font-medium text-surface-500 mb-1.5">
+            <label className="flex items-center gap-1.5 text-xs font-medium text-ink-500 mb-1.5">
               <Users className="h-3.5 w-3.5" />
               Personas
             </label>
@@ -72,34 +63,30 @@ export function BookingForm({ actividad }: BookingFormProps) {
               <button
                 type="button"
                 onClick={() => setPersonas(Math.max(1, personas - 1))}
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-surface-200 text-surface-600 hover:bg-surface-50 transition-colors cursor-pointer"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-ink-200 text-ink-700 hover:bg-cream-200 hover:border-ink-400 transition-all duration-150 cursor-pointer font-bold"
               >
-                -
+                −
               </button>
-              <span className="text-lg font-semibold text-surface-900 min-w-[2ch] text-center">
-                {personas}
-              </span>
+              <span className="text-lg font-semibold text-ink-900 min-w-[2ch] text-center">{personas}</span>
               <button
                 type="button"
                 onClick={() => setPersonas(Math.min(10, personas + 1))}
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-surface-200 text-surface-600 hover:bg-surface-50 transition-colors cursor-pointer"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-ink-200 text-ink-700 hover:bg-cream-200 hover:border-ink-400 transition-all duration-150 cursor-pointer font-bold"
               >
                 +
               </button>
             </div>
           </div>
 
-          {/* Total */}
           {!esGratis && (
-            <div className="flex items-center justify-between border-t border-surface-100 pt-4">
-              <span className="text-sm text-surface-500">Total</span>
-              <span className="text-xl font-bold text-surface-900">
+            <div className="flex items-center justify-between border-t border-ink-900/6 pt-4">
+              <span className="text-sm text-ink-500">Total</span>
+              <span className="font-display text-2xl font-bold text-ink-900">
                 {formatearPrecio(total, actividad.precio.moneda)}
               </span>
             </div>
           )}
 
-          {/* Botón */}
           <button type="submit" className="btn-primary w-full py-3">
             <Ticket className="h-4 w-4" />
             {esGratis ? "Confirmar visita" : "Reservar ahora"}

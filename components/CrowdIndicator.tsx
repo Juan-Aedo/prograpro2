@@ -47,7 +47,7 @@ export function CrowdIndicator({
                 i === 1 && "h-1.5",
                 i === 2 && "h-2.5",
                 i === 3 && "h-3.5",
-                i <= barras ? color.replace("text-", "bg-") : "bg-surface-300"
+                i <= barras ? color.replace("text-", "bg-") : "bg-ink-200"
               )}
             />
           ))}
@@ -71,7 +71,7 @@ export function CrowdIndicator({
                 i === 1 && "h-2",
                 i === 2 && "h-3",
                 i === 3 && "h-4",
-                i <= barras ? color.replace("text-", "bg-") : "bg-surface-300"
+                i <= barras ? color.replace("text-", "bg-") : "bg-ink-200"
               )}
             />
           ))}

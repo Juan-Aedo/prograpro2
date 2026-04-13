@@ -17,9 +17,9 @@ import { cn } from "@/lib/utils";
 import { useUserStore } from "@/store/userStore";
 
 const enlaces = [
-  { href: "/", label: "Inicio", icono: Home },
-  { href: "/explore", label: "Explorar", icono: Search },
-  { href: "/map", label: "Mapa", icono: Map },
+  { href: "/",         label: "Inicio",   icono: Home },
+  { href: "/explore",  label: "Explorar", icono: Search },
+  { href: "/map",      label: "Mapa",     icono: Map },
   { href: "/bookings", label: "Reservas", icono: CalendarCheck },
 ];
 
@@ -31,37 +31,34 @@ export function Navbar() {
   return (
     <>
       {/* Navbar desktop */}
-      <nav className="sticky top-0 z-50 border-b border-surface-200/60 bg-white/80 backdrop-blur-xl">
+      <nav className="sticky top-0 z-50 border-b border-ink-900/8 bg-cream-100/90 backdrop-blur-sm">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+
           {/* Logo */}
-          <Link
-            href="/"
-            className="flex items-center gap-2.5 cursor-pointer group"
-          >
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 transition-transform duration-200 group-hover:scale-105">
-              <Compass className="h-5 w-5 text-white" />
+          <Link href="/" className="flex items-center gap-2.5 cursor-pointer group">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-400 border border-ink-900/20 transition-all duration-150 group-hover:shadow-offset-sm group-hover:-translate-x-0.5 group-hover:-translate-y-0.5">
+              <Compass className="h-5 w-5 text-ink-900" />
             </div>
-            <span className="text-lg font-bold text-surface-900 tracking-tight">
+            <span className="font-display text-xl font-bold text-ink-900 tracking-tight">
               Panoramas
             </span>
           </Link>
 
           {/* Links desktop */}
-          <div className="hidden md:flex items-center gap-1">
-            {enlaces.map(({ href, label, icono: Icono }) => {
+          <div className="hidden md:flex items-center gap-6">
+            {enlaces.map(({ href, label }) => {
               const activo = pathname === href;
               return (
                 <Link
                   key={href}
                   href={href}
                   className={cn(
-                    "flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-all duration-200 cursor-pointer",
+                    "relative text-sm font-medium transition-colors duration-150 cursor-pointer pb-0.5",
                     activo
-                      ? "bg-brand-50 text-brand-700"
-                      : "text-surface-500 hover:bg-surface-100 hover:text-surface-900"
+                      ? "text-ink-900 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-full after:bg-teal-400"
+                      : "text-ink-500 hover:text-ink-900"
                   )}
                 >
-                  <Icono className="h-4 w-4" />
                   {label}
                 </Link>
               );
@@ -71,11 +68,14 @@ export function Navbar() {
           {/* Acciones */}
           <div className="hidden md:flex items-center gap-3">
             {estaAutenticado && usuario ? (
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700 cursor-pointer transition-colors duration-200 hover:bg-brand-200">
-                {usuario.avatar}
+              <div className="flex items-center gap-2 rounded-full border border-ink-900/15 bg-cream-200 px-3 py-1.5 cursor-pointer transition-all duration-150 hover:border-ink-900/30 hover:shadow-offset-sm hover:-translate-x-0.5 hover:-translate-y-0.5">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-teal-400 text-xs font-bold text-ink-900">
+                  {usuario.avatar}
+                </div>
+                <span className="text-sm font-medium text-ink-800">{usuario.nombre}</span>
               </div>
             ) : (
-              <Link href="/login" className="btn-primary text-sm">
+              <Link href="/login" className="btn-primary text-sm py-2 px-5">
                 Iniciar Sesión
               </Link>
             )}
@@ -84,25 +84,19 @@ export function Navbar() {
           {/* Botón menú móvil */}
           <button
             onClick={() => setMenuAbierto(!menuAbierto)}
-            className="flex md:hidden h-10 w-10 items-center justify-center rounded-lg text-surface-500 transition-colors duration-200 hover:bg-surface-100 cursor-pointer"
+            className="flex md:hidden h-10 w-10 items-center justify-center rounded-full border border-ink-900/15 text-ink-600 transition-all duration-150 hover:bg-cream-200 cursor-pointer"
             aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
           >
-            {menuAbierto ? (
-              <X className="h-5 w-5" />
-            ) : (
-              <Menu className="h-5 w-5" />
-            )}
+            {menuAbierto ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
 
         {/* Menú móvil desplegable */}
-        <div
-          className={cn(
-            "md:hidden overflow-hidden transition-all duration-300 ease-out",
-            menuAbierto ? "max-h-80 opacity-100" : "max-h-0 opacity-0"
-          )}
-        >
-          <div className="border-t border-surface-100 bg-white px-4 pb-4 pt-2 space-y-1">
+        <div className={cn(
+          "md:hidden overflow-hidden transition-all duration-300 ease-out",
+          menuAbierto ? "max-h-80 opacity-100" : "max-h-0 opacity-0"
+        )}>
+          <div className="border-t border-ink-900/8 bg-cream-100 px-4 pb-5 pt-3 space-y-1">
             {enlaces.map(({ href, label, icono: Icono }) => {
               const activo = pathname === href;
               return (
@@ -111,13 +105,13 @@ export function Navbar() {
                   href={href}
                   onClick={() => setMenuAbierto(false)}
                   className={cn(
-                    "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 cursor-pointer",
+                    "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-150 cursor-pointer",
                     activo
-                      ? "bg-brand-50 text-brand-700"
-                      : "text-surface-600 hover:bg-surface-50"
+                      ? "bg-teal-100 text-teal-700 border border-teal-200"
+                      : "text-ink-600 hover:bg-cream-200"
                   )}
                 >
-                  <Icono className="h-5 w-5" />
+                  <Icono className="h-4 w-4" />
                   {label}
                 </Link>
               );
@@ -126,9 +120,9 @@ export function Navbar() {
               <Link
                 href="/login"
                 onClick={() => setMenuAbierto(false)}
-                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-brand-600 hover:bg-brand-50 transition-all duration-200 cursor-pointer"
+                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-teal-700 hover:bg-teal-50 transition-all duration-150 cursor-pointer"
               >
-                <User className="h-5 w-5" />
+                <User className="h-4 w-4" />
                 Iniciar Sesión
               </Link>
             )}
@@ -136,8 +130,8 @@ export function Navbar() {
         </div>
       </nav>
 
-      {/* Barra de navegación inferior móvil */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-surface-200/60 bg-white/90 backdrop-blur-xl">
+      {/* Barra inferior móvil */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-ink-900/8 bg-cream-100/95 backdrop-blur-sm">
         <div className="flex items-center justify-around px-2 py-2">
           {enlaces.map(({ href, label, icono: Icono }) => {
             const activo = pathname === href;
@@ -146,18 +140,16 @@ export function Navbar() {
                 key={href}
                 href={href}
                 className={cn(
-                  "flex flex-col items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-200 cursor-pointer",
-                  activo
-                    ? "text-brand-600"
-                    : "text-surface-400 hover:text-surface-600"
+                  "flex flex-col items-center gap-1 px-3 py-1.5 text-xs font-medium transition-all duration-150 cursor-pointer",
+                  activo ? "text-teal-600" : "text-ink-400 hover:text-ink-700"
                 )}
               >
-                <Icono
-                  className={cn(
-                    "h-5 w-5 transition-transform duration-200",
-                    activo && "scale-110"
-                  )}
-                />
+                <div className={cn(
+                  "rounded-xl p-1.5 transition-all duration-150",
+                  activo ? "bg-teal-100" : ""
+                )}>
+                  <Icono className={cn("h-5 w-5", activo && "scale-110")} />
+                </div>
                 {label}
               </Link>
             );
