@@ -77,3 +77,29 @@ export interface FilterState {
   soloDestacadas: boolean;
   ordenarPor: "relevancia" | "precio" | "rating" | "distancia";
 }
+
+export interface RecommendationRequest {
+  lat: number;
+  lng: number;
+  preferencias: ActivityCategory[];
+  presupuestoMax?: number;
+  radio?: number;
+  limite?: number;
+}
+
+export interface EnrichedActivity extends Activity {
+  scoreRelevancia: number;
+  razonRecomendacion: string;
+  compatibleConClima: boolean;
+  distanciaTexto?: string;
+  distanciaMetros?: number;
+  urlMaps?: string;
+}
+
+export interface RecommendationResponse {
+  actividades: EnrichedActivity[];
+  clima: WeatherData;
+  totalEncontradas: number;
+  filtradasPorClima: number;
+  timestamp: string;
+}

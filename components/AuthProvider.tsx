@@ -10,6 +10,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const supabase = createClient();
 
+    // Si Supabase no está configurado, simplemente no hidratamos el store
+    if (!supabase) return;
+
     // Hidratar el store con la sesión actual al cargar la página
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUsuario(session);

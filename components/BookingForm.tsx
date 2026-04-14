@@ -1,20 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar, Users, Ticket, Check } from "lucide-react";
+import { Calendar, Users, Ticket, Check, AlertCircle } from "lucide-react";
 import type { Activity } from "@/lib/types";
 import { formatearPrecio } from "@/lib/utils";
-
-//IMPORTANTE ESTA ES LA CONEXIÓN FRONT Y BACK////
-import { useWeather } from "@/lib/hooks/useWeather";
-import { useRecommendations } from "@/lib/hooks/useRecommendations";
-
-const { clima, lat, lng } = useWeather(); // detecta ubicación automáticamente
-const { data, fetch } = useRecommendations();
-
-// Llamar al motor:
-fetch({ lat, lng, preferencias: ["museos", "gastronomia"] });
-////////////////////////////////////////////////
 
 interface BookingFormProps {
   actividad: Activity;
@@ -24,15 +13,42 @@ export function BookingForm({ actividad }: BookingFormProps) {
   const [fecha, setFecha] = useState("");
   const [personas, setPersonas] = useState(1);
   const [reservaExitosa, setReservaExitosa] = useState(false);
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const total = actividad.precio.esPorPersona
     ? actividad.precio.valor * personas
     : actividad.precio.valor;
 
-  const handleReservar = (e: React.FormEvent) => {
+  const handleReservar = async (e: React.FormEvent) => {
     e.preventDefault();
-    setReservaExitosa(true);
-    setTimeout(() => setReservaExitosa(false), 3000);
+    setCargando(true);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          actividadId: actividad.id,
+          fecha,
+          hora: actividad.horario.apertura,
+          personas,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? "Error al crear la reserva");
+      }
+
+      setReservaExitosa(true);
+      setTimeout(() => setReservaExitosa(false), 3000);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Error al crear la reserva");
+    } finally {
+      setCargando(false);
+    }
   };
 
   const esGratis = actividad.precio.valor === 0;
@@ -59,9 +75,12 @@ export function BookingForm({ actividad }: BookingFormProps) {
               Fecha
             </label>
             <input
-              type="date" value={fecha}
+              type="date"
+              value={fecha}
               onChange={(e) => setFecha(e.target.value)}
-              required className="input-field cursor-pointer"
+              min={new Date().toISOString().split("T")[0]}
+              required
+              className="input-field cursor-pointer"
             />
           </div>
 
@@ -78,7 +97,9 @@ export function BookingForm({ actividad }: BookingFormProps) {
               >
                 −
               </button>
-              <span className="text-lg font-semibold text-ink-900 min-w-[2ch] text-center">{personas}</span>
+              <span className="text-lg font-semibold text-ink-900 min-w-[2ch] text-center">
+                {personas}
+              </span>
               <button
                 type="button"
                 onClick={() => setPersonas(Math.min(10, personas + 1))}
@@ -89,6 +110,13 @@ export function BookingForm({ actividad }: BookingFormProps) {
             </div>
           </div>
 
+          {error && (
+            <div className="flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-600">
+              <AlertCircle className="h-4 w-4 flex-shrink-0" />
+              {error}
+            </div>
+          )}
+
           {!esGratis && (
             <div className="flex items-center justify-between border-t border-ink-900/6 pt-4">
               <span className="text-sm text-ink-500">Total</span>
@@ -98,9 +126,19 @@ export function BookingForm({ actividad }: BookingFormProps) {
             </div>
           )}
 
-          <button type="submit" className="btn-primary w-full py-3">
-            <Ticket className="h-4 w-4" />
-            {esGratis ? "Confirmar visita" : "Reservar ahora"}
+          <button
+            type="submit"
+            disabled={cargando}
+            className="btn-primary w-full py-3 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {cargando ? (
+              <span className="animate-pulse-soft">Procesando...</span>
+            ) : (
+              <>
+                <Ticket className="h-4 w-4" />
+                {esGratis ? "Confirmar visita" : "Reservar ahora"}
+              </>
+            )}
           </button>
         </form>
       )}

@@ -31,6 +31,12 @@ export default function RegisterPage() {
     setCargando(true);
     const supabase = createClient();
 
+    if (!supabase) {
+      setError("Supabase no está configurado. Añade las claves en .env.local.");
+      setCargando(false);
+      return;
+    }
+
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
@@ -60,6 +66,12 @@ export default function RegisterPage() {
     setCargando(true);
     const supabase = createClient();
 
+    if (!supabase) {
+      setError("Supabase no está configurado.");
+      setCargando(false);
+      return;
+    }
+
     const { error } = await supabase.auth.verifyOtp({
       email,
       token,
@@ -83,6 +95,7 @@ export default function RegisterPage() {
   const loginConGoogle = async () => {
     setCargando(true);
     const supabase = createClient();
+    if (!supabase) { setCargando(false); return; }
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback` },

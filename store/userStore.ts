@@ -42,7 +42,7 @@ export const useUserStore = create<UserState>((set) => ({
 
   logout: async () => {
     const supabase = createClient();
-    await supabase.auth.signOut();
+    if (supabase) await supabase.auth.signOut();
     set({ usuario: null, estaAutenticado: false });
   },
 
@@ -51,6 +51,6 @@ export const useUserStore = create<UserState>((set) => ({
       usuario: state.usuario ? { ...state.usuario, preferencias } : null,
     }));
     const supabase = createClient();
-    supabase.auth.updateUser({ data: { preferencias } });
+    if (supabase) supabase.auth.updateUser({ data: { preferencias } });
   },
 }));
