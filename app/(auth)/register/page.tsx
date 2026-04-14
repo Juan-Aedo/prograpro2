@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Compass, Mail, Lock, User, ArrowRight, Eye, EyeOff, Check } from "lucide-react";
 import { useUserStore } from "@/store/userStore";
-import { categoriaLabels } from "@/lib/mock-data";
+import { categoriaLabels } from "@/lib/categorias";
 import type { ActivityCategory } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -16,9 +16,10 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [mostrarPassword, setMostrarPassword] = useState(false);
   const [preferencias, setPreferencias] = useState<ActivityCategory[]>([]);
+  const [error, setError] = useState("");
   const [cargando, setCargando] = useState(false);
   const router = useRouter();
-  const login = useUserStore((s) => s.login);
+  const registro = useUserStore((s) => s.registro);
 
   const togglePreferencia = (cat: ActivityCategory) => {
     setPreferencias((prev) =>
@@ -28,12 +29,19 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     if (paso === 1) { setPaso(2); return; }
     setCargando(true);
-    await new Promise((r) => setTimeout(r, 800));
-    login(email, password);
-    router.push("/");
-    setCargando(false);
+    try {
+      await registro(nombre, email, password, preferencias);
+      router.push("/");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al crear cuenta");
+      setPaso(1);
+    } finally {
+      setCargando(false);
+    }
   };
 
   return (
@@ -113,6 +121,8 @@ export default function RegisterPage() {
                 </div>
               </div>
             )}
+
+            {error && <p className="text-xs text-red-500 animate-scale-in">{error}</p>}
 
             <button type="submit" disabled={cargando} className="btn-primary w-full py-3">
               {cargando ? (

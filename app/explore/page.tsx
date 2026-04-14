@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useMemo, Suspense } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Search, SlidersHorizontal, X, Star, ArrowUpDown } from "lucide-react";
-import { actividades } from "@/lib/mock-data";
-import { categoriaLabels } from "@/lib/mock-data";
+import { categoriaLabels } from "@/lib/categorias";
 import { ActivityCard } from "@/components/ActivityCard";
 import { cn } from "@/lib/utils";
-import type { ActivityCategory } from "@/lib/types";
+import type { Activity, ActivityCategory } from "@/lib/types";
 
 export default function ExplorePage() {
   return (
@@ -35,6 +34,8 @@ function ExploreContent() {
   const categoriaInicial = searchParams.get("categoria") as ActivityCategory | null;
   const busquedaInicial = searchParams.get("q") ?? "";
 
+  const [actividades, setActividades] = useState<Activity[]>([]);
+  const [cargando, setCargando] = useState(true);
   const [busqueda, setBusqueda] = useState(busquedaInicial);
   const [categoriasSeleccionadas, setCategoriasSeleccionadas] = useState<ActivityCategory[]>(
     categoriaInicial ? [categoriaInicial] : []
@@ -42,6 +43,23 @@ function ExploreContent() {
   const [soloDestacadas, setSoloDestacadas] = useState(false);
   const [ordenarPor, setOrdenarPor] = useState<"relevancia" | "precio" | "rating">("relevancia");
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function cargar() {
+      setCargando(true);
+      try {
+        const res = await fetch("/api/activities", { cache: "no-store" });
+        if (!res.ok) throw new Error("Error al cargar");
+        const data: Activity[] = await res.json();
+        if (!cancelled) setActividades(data);
+      } finally {
+        if (!cancelled) setCargando(false);
+      }
+    }
+    cargar();
+    return () => { cancelled = true; };
+  }, []);
 
   const toggleCategoria = (cat: ActivityCategory) => {
     setCategoriasSeleccionadas((prev) =>
@@ -68,7 +86,7 @@ function ExploreContent() {
     if (ordenarPor === "precio") filtradas.sort((a, b) => a.precio.valor - b.precio.valor);
     else if (ordenarPor === "rating") filtradas.sort((a, b) => b.rating - a.rating);
     return filtradas;
-  }, [busqueda, categoriasSeleccionadas, soloDestacadas, ordenarPor]);
+  }, [actividades, busqueda, categoriasSeleccionadas, soloDestacadas, ordenarPor]);
 
   const filtrosActivos = categoriasSeleccionadas.length > 0 || soloDestacadas || busqueda.trim();
 
@@ -82,7 +100,7 @@ function ExploreContent() {
             Todas las Actividades
           </h1>
           <p className="mt-1 text-sm text-ink-500">
-            {resultados.length} actividades disponibles
+            {cargando ? "Cargando..." : `${resultados.length} actividades disponibles`}
           </p>
         </div>
 
@@ -189,7 +207,13 @@ function ExploreContent() {
         </div>
 
         {/* Resultados */}
-        {resultados.length > 0 ? (
+        {cargando ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="card h-72 animate-pulse bg-cream-200" />
+            ))}
+          </div>
+        ) : resultados.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 animate-stagger">
             {resultados.map((actividad, i) => (
               <ActivityCard key={actividad.id} actividad={actividad} indice={i} />

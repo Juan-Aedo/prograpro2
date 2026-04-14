@@ -18,15 +18,20 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setCargando(true);
-    await new Promise((r) => setTimeout(r, 800));
-    if (email && password) {
-      login(email, password);
-      router.push("/");
-    } else {
+    if (!email || !password) {
       setError("Completa todos los campos");
+      return;
     }
-    setCargando(false);
+    setCargando(true);
+    try {
+      await login(email, password);
+      router.push("/");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al iniciar sesión");
+    } finally {
+      setCargando(false);
+    }
   };
 
   return (
@@ -109,7 +114,7 @@ export default function LoginPage() {
         </div>
 
         <p className="mt-4 text-center text-xs text-ink-400">
-          Usa cualquier email y contraseña para probar
+          Cuenta demo: <span className="font-mono">demo@panoramas.cl</span> / <span className="font-mono">demo1234</span>
         </p>
       </div>
     </div>

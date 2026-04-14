@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Compass,
   Home,
@@ -12,6 +12,7 @@ import {
   Menu,
   X,
   User,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUserStore } from "@/store/userStore";
@@ -26,7 +27,18 @@ const enlaces = [
 export function Navbar() {
   const [menuAbierto, setMenuAbierto] = useState(false);
   const pathname = usePathname();
-  const { estaAutenticado, usuario } = useUserStore();
+  const router = useRouter();
+  const { estaAutenticado, usuario, cargarUsuario, logout } = useUserStore();
+
+  useEffect(() => {
+    cargarUsuario();
+  }, [cargarUsuario]);
+
+  const handleLogout = async () => {
+    await logout();
+    router.push("/");
+    router.refresh();
+  };
 
   return (
     <>
@@ -68,11 +80,20 @@ export function Navbar() {
           {/* Acciones */}
           <div className="hidden md:flex items-center gap-3">
             {estaAutenticado && usuario ? (
-              <div className="flex items-center gap-2 rounded-full border border-ink-900/15 bg-cream-200 px-3 py-1.5 cursor-pointer transition-all duration-150 hover:border-ink-900/30 hover:shadow-offset-sm hover:-translate-x-0.5 hover:-translate-y-0.5">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-teal-400 text-xs font-bold text-ink-900">
-                  {usuario.avatar}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 rounded-full border border-ink-900/15 bg-cream-200 px-3 py-1.5">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-teal-400 text-xs font-bold text-ink-900">
+                    {usuario.avatar}
+                  </div>
+                  <span className="text-sm font-medium text-ink-800">{usuario.nombre}</span>
                 </div>
-                <span className="text-sm font-medium text-ink-800">{usuario.nombre}</span>
+                <button
+                  onClick={handleLogout}
+                  aria-label="Cerrar sesión"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-ink-900/15 text-ink-600 transition-all duration-150 hover:bg-cream-200 cursor-pointer"
+                >
+                  <LogOut className="h-4 w-4" />
+                </button>
               </div>
             ) : (
               <Link href="/login" className="btn-primary text-sm py-2 px-5">

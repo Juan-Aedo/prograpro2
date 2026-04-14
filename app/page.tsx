@@ -1,6 +1,8 @@
 import { Suspense } from "react";
-import { actividades, climaMock } from "@/lib/mock-data";
-import { categoriaLabels } from "@/lib/mock-data";
+import { prisma } from "@/lib/db";
+import { serializeActivity } from "@/lib/serializers";
+import { obtenerClima } from "@/lib/weather";
+import { categoriaLabels } from "@/lib/categorias";
 import { ActivityCard } from "@/components/ActivityCard";
 import { WeatherBadge } from "@/components/WeatherBadge";
 import { HomeHero } from "@/components/HomeHero";
@@ -8,15 +10,23 @@ import { CategoryScroller } from "@/components/CategoryScroller";
 import { TrendingUp, Sparkles, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
-const destacadas  = actividades.filter((a) => a.destacada);
-const enTendencia = actividades.filter((a) => a.enTendencia);
-const categorias  = Object.entries(categoriaLabels);
+export const dynamic = "force-dynamic";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const [destacadasRows, enTendenciaRows, clima] = await Promise.all([
+    prisma.activity.findMany({ where: { destacada: true }, orderBy: { createdAt: "asc" } }),
+    prisma.activity.findMany({ where: { enTendencia: true }, orderBy: { createdAt: "asc" } }),
+    obtenerClima(),
+  ]);
+
+  const destacadas = destacadasRows.map(serializeActivity);
+  const enTendencia = enTendenciaRows.map(serializeActivity);
+  const categorias = Object.entries(categoriaLabels);
+
   return (
     <div className="pb-24 md:pb-8">
       {/* Hero */}
-      <HomeHero clima={climaMock} />
+      <HomeHero clima={clima} />
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mt-16 space-y-16">
 
@@ -87,12 +97,11 @@ export default function HomePage() {
         {/* ——— Clima + CTA ——— */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-5 pb-4">
           <Suspense fallback={<div className="rounded-2xl border border-ink-200 h-52 animate-pulse bg-cream-200" />}>
-            <WeatherBadge clima={climaMock} />
+            <WeatherBadge clima={clima} />
           </Suspense>
 
           {/* CTA card — teal sólido con borde negro */}
           <div className="relative overflow-hidden rounded-2xl border border-ink-900 bg-teal-400 p-8 flex flex-col justify-between min-h-[220px]">
-            {/* Elemento decorativo de fondo */}
             <div className="pointer-events-none absolute -right-8 -bottom-8 h-48 w-48 rounded-full bg-teal-300/50" />
             <div className="pointer-events-none absolute -right-2 top-6 h-24 w-24 rounded-full border-2 border-ink-900/10" />
 

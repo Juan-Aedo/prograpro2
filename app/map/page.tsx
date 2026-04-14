@@ -1,17 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MapPin, Navigation, List, Grid3X3 } from "lucide-react";
-import { actividades } from "@/lib/mock-data";
-import { categoriaLabels } from "@/lib/mock-data";
+import { categoriaLabels } from "@/lib/categorias";
 import { ActivityCard } from "@/components/ActivityCard";
 import { cn } from "@/lib/utils";
-import type { ActivityCategory } from "@/lib/types";
+import type { Activity, ActivityCategory } from "@/lib/types";
 import Link from "next/link";
 
 export default function MapPage() {
+  const [actividades, setActividades] = useState<Activity[]>([]);
+  const [cargando, setCargando] = useState(true);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<ActivityCategory | null>(null);
   const [vistaLista, setVistaLista] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function cargar() {
+      setCargando(true);
+      try {
+        const res = await fetch("/api/activities", { cache: "no-store" });
+        if (!res.ok) return;
+        const data: Activity[] = await res.json();
+        if (!cancelled) setActividades(data);
+      } finally {
+        if (!cancelled) setCargando(false);
+      }
+    }
+    cargar();
+    return () => { cancelled = true; };
+  }, []);
 
   const actividadesFiltradas = categoriaSeleccionada
     ? actividades.filter((a) => a.categoria === categoriaSeleccionada)
@@ -28,7 +46,7 @@ export default function MapPage() {
               Mapa de Actividades
             </h1>
             <p className="mt-1 text-sm text-ink-500">
-              {actividadesFiltradas.length} actividades cerca de ti
+              {cargando ? "Cargando..." : `${actividadesFiltradas.length} actividades cerca de ti`}
             </p>
           </div>
           <div className="flex items-center gap-1 p-1 rounded-full border border-ink-200 bg-cream-200">

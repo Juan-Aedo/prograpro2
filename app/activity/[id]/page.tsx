@@ -5,7 +5,8 @@ import {
   ArrowLeft, Star, MapPin, Clock,
   Calendar, Tag, TrendingUp, Share2, Heart,
 } from "lucide-react";
-import { actividades } from "@/lib/mock-data";
+import { prisma } from "@/lib/db";
+import { serializeActivity } from "@/lib/serializers";
 import { formatearPrecio, cn } from "@/lib/utils";
 import { CrowdIndicator } from "@/components/CrowdIndicator";
 import { MapWidget } from "@/components/MapWidget";
@@ -15,13 +16,12 @@ interface Props {
   params: { id: string };
 }
 
-export function generateStaticParams() {
-  return actividades.map((a) => ({ id: a.id }));
-}
+export const dynamic = "force-dynamic";
 
-export default function ActivityDetailPage({ params }: Props) {
-  const actividad = actividades.find((a) => a.id === params.id);
-  if (!actividad) notFound();
+export default async function ActivityDetailPage({ params }: Props) {
+  const row = await prisma.activity.findUnique({ where: { id: params.id } });
+  if (!row) notFound();
+  const actividad = serializeActivity(row);
 
   return (
     <div className="pb-24 md:pb-8">

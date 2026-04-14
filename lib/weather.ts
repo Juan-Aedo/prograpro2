@@ -1,37 +1,53 @@
 import type { WeatherData } from "./types";
-import { climaMock } from "./mock-data";
 
-// Obtener clima actual (usa mock mientras no haya API key)
-export async function obtenerClima(
-  _lat?: number,
-  _lng?: number
-): Promise<WeatherData> {
-  // TODO: Integrar OpenWeatherMap API con key real
-  // const API_KEY = process.env.OPENWEATHER_API_KEY;
-  // const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${API_KEY}&units=metric&lang=es`;
-  // const res = await fetch(url);
-  // return transformarRespuesta(await res.json());
+const MOCK: WeatherData = {
+  temperatura: 22,
+  sensacionTermica: 20,
+  descripcion: "Parcialmente nublado",
+  icono: "partly-cloudy",
+  humedad: 55,
+  viento: 12,
+  ciudad: "Santiago",
+};
 
-  // Simula latencia de red
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  return climaMock;
+function mapIcon(main: string): string {
+  const m = main.toLowerCase();
+  if (m.includes("clear")) return "clear";
+  if (m.includes("cloud") && m.includes("few")) return "partly-cloudy";
+  if (m.includes("cloud")) return "cloudy";
+  if (m.includes("rain") || m.includes("drizzle")) return "rain";
+  if (m.includes("thunder")) return "storm";
+  if (m.includes("snow")) return "snow";
+  if (m.includes("fog") || m.includes("mist") || m.includes("haze")) return "fog";
+  return "partly-cloudy";
 }
 
-// Determina el ícono SVG según el estado del clima
-export function obtenerIconoClima(icono: string): string {
-  const iconos: Record<string, string> = {
-    "clear": "Sun",
-    "partly-cloudy": "CloudSun",
-    "cloudy": "Cloud",
-    "rain": "CloudRain",
-    "storm": "CloudLightning",
-    "snow": "Snowflake",
-    "fog": "CloudFog",
-  };
-  return iconos[icono] ?? "Sun";
+export async function obtenerClima(): Promise<WeatherData> {
+  const apiKey = process.env.OPENWEATHER_API_KEY;
+  const city = process.env.OPENWEATHER_CITY ?? "Santiago,cl";
+  if (!apiKey) return MOCK;
+
+  try {
+    const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(
+      city
+    )}&units=metric&lang=es&appid=${apiKey}`;
+    const res = await fetch(url, { next: { revalidate: 600 } });
+    if (!res.ok) return MOCK;
+    const data = await res.json();
+    return {
+      temperatura: Math.round(data.main?.temp ?? 0),
+      sensacionTermica: Math.round(data.main?.feels_like ?? 0),
+      descripcion: data.weather?.[0]?.description ?? "Sin datos",
+      icono: mapIcon(data.weather?.[0]?.main ?? ""),
+      humedad: data.main?.humidity ?? 0,
+      viento: Math.round((data.wind?.speed ?? 0) * 3.6),
+      ciudad: data.name ?? "Santiago",
+    };
+  } catch {
+    return MOCK;
+  }
 }
 
-// Sugiere tipo de actividad basado en el clima
 export function sugerirPorClima(clima: WeatherData): string[] {
   if (clima.temperatura > 25 && clima.descripcion.includes("sol")) {
     return ["parques", "aire-libre", "deportes"];
