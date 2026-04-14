@@ -5,6 +5,17 @@ import { Calendar, Users, Ticket, Check } from "lucide-react";
 import type { Activity } from "@/lib/types";
 import { formatearPrecio } from "@/lib/utils";
 
+//IMPORTANTE ESTA ES LA CONEXIÓN FRONT Y BACK////
+import { useWeather } from "@/lib/hooks/useWeather";
+import { useRecommendations } from "@/lib/hooks/useRecommendations";
+
+const { clima, lat, lng } = useWeather(); // detecta ubicación automáticamente
+const { data, fetch } = useRecommendations();
+
+// Llamar al motor:
+fetch({ lat, lng, preferencias: ["museos", "gastronomia"] });
+////////////////////////////////////////////////
+
 interface BookingFormProps {
   actividad: Activity;
 }
