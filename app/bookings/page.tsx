@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
   CalendarCheck, Clock, Users, MapPin,
-  CheckCircle2, AlertCircle, XCircle, ArrowRight, Loader2,
+  CheckCircle2, AlertCircle, XCircle, ArrowRight,
 } from "lucide-react";
 import { formatearPrecio, cn } from "@/lib/utils";
 import type { Booking } from "@/lib/types";
+import { useUserStore } from "@/store/userStore";
 
 const estadoConfig = {
   confirmada: { label: "Confirmada", color: "text-emerald-700 bg-emerald-50 border border-emerald-200", icono: CheckCircle2 },
@@ -20,39 +21,43 @@ const estadoConfig = {
 type TabValue = "todas" | "confirmada" | "pendiente" | "completada";
 
 export default function BookingsPage() {
+  const estaAutenticado = useUserStore((s) => s.estaAutenticado);
   const [tabActiva, setTabActiva] = useState<TabValue>("todas");
   const [reservas, setReservas] = useState<Booking[]>([]);
   const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    async function cargarReservas() {
+    let cancelled = false;
+    async function cargar() {
+      setCargando(true);
       try {
-        setCargando(true);
-        const res = await fetch("/api/bookings");
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error ?? "Error al cargar reservas");
+        const res = await fetch("/api/bookings", { cache: "no-store" });
+        if (res.status === 401) {
+          if (!cancelled) { setReservas([]); setError("no-auth"); }
+          return;
         }
+        if (!res.ok) throw new Error("Error al cargar reservas");
         const data: Booking[] = await res.json();
-        setReservas(data);
-      } catch (e: unknown) {
-        setError(e instanceof Error ? e.message : "Error desconocido");
+        if (!cancelled) { setReservas(data); setError(""); }
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : "Error");
       } finally {
-        setCargando(false);
+        if (!cancelled) setCargando(false);
       }
     }
-    cargarReservas();
-  }, []);
+    cargar();
+    return () => { cancelled = true; };
+  }, [estaAutenticado]);
 
   const reservasFiltradas =
     tabActiva === "todas" ? reservas : reservas.filter((r) => r.estado === tabActiva);
 
   const tabs: { value: TabValue; label: string; count: number }[] = [
     { value: "todas",      label: "Todas",       count: reservas.length },
-    { value: "confirmada", label: "Confirmadas",  count: reservas.filter((r) => r.estado === "confirmada").length },
-    { value: "pendiente",  label: "Pendientes",   count: reservas.filter((r) => r.estado === "pendiente").length },
-    { value: "completada", label: "Completadas",  count: reservas.filter((r) => r.estado === "completada").length },
+    { value: "confirmada", label: "Confirmadas", count: reservas.filter((r) => r.estado === "confirmada").length },
+    { value: "pendiente",  label: "Pendientes",  count: reservas.filter((r) => r.estado === "pendiente").length },
+    { value: "completada", label: "Completadas", count: reservas.filter((r) => r.estado === "completada").length },
   ];
 
   return (
@@ -61,79 +66,68 @@ export default function BookingsPage() {
         {/* Encabezado */}
         <div>
           <p className="eyebrow mb-1">Historial</p>
-          <h1 className="font-display text-3xl sm:text-4xl font-bold text-ink-900 tracking-tight">
-            Mis Reservas
-          </h1>
-          <p className="mt-1 text-sm text-ink-500">
-            Gestiona y revisa tus actividades reservadas
-          </p>
+          <h1 className="font-display text-3xl sm:text-4xl font-bold text-ink-900 tracking-tight">Mis Reservas</h1>
+          <p className="mt-1 text-sm text-ink-500">Gestiona y revisa tus actividades reservadas</p>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 p-1 rounded-2xl border border-ink-900/10 bg-cream-200 overflow-x-auto">
-          {tabs.map((tab) => (
-            <button
-              key={tab.value}
-              onClick={() => setTabActiva(tab.value)}
-              className={cn(
-                "flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all duration-150 cursor-pointer whitespace-nowrap",
-                tabActiva === tab.value
-                  ? "bg-cream-100 text-ink-900 border border-ink-900/10 shadow-sm"
-                  : "text-ink-500 hover:text-ink-800"
-              )}
-            >
-              {tab.label}
-              <span className={cn(
-                "rounded-full px-1.5 py-0.5 text-[10px] font-bold",
-                tabActiva === tab.value ? "bg-teal-400 text-ink-900" : "bg-cream-300 text-ink-500"
-              )}>
-                {tab.count}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        {/* Estado de carga */}
-        {cargando && (
-          <div className="flex justify-center items-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-teal-500" />
+        {error === "no-auth" ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <CalendarCheck className="h-12 w-12 text-ink-300 mb-4" />
+            <h3 className="font-display text-xl font-bold text-ink-700">Inicia sesión para ver tus reservas</h3>
+            <p className="mt-1 text-sm text-ink-400 max-w-sm">Necesitas una cuenta para acceder a tu historial.</p>
+            <Link href="/login" className="btn-primary mt-5">Iniciar Sesión<ArrowRight className="h-4 w-4" /></Link>
           </div>
-        )}
-
-        {/* Error */}
-        {!cargando && error && (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <AlertCircle className="h-10 w-10 text-red-400 mb-3" />
-            <p className="text-sm text-red-600">{error}</p>
-            <Link href="/login" className="btn-primary mt-4">
-              Iniciar sesión
-            </Link>
-          </div>
-        )}
-
-        {/* Lista de reservas */}
-        {!cargando && !error && (
-          reservasFiltradas.length > 0 ? (
-            <div className="space-y-4 animate-stagger">
-              {reservasFiltradas.map((reserva) => (
-                <BookingCard key={reserva.id} reserva={reserva} />
+        ) : (
+          <>
+            {/* Tabs */}
+            <div className="flex gap-1 p-1 rounded-2xl border border-ink-900/10 bg-cream-200 overflow-x-auto">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.value}
+                  onClick={() => setTabActiva(tab.value)}
+                  className={cn(
+                    "flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all duration-150 cursor-pointer whitespace-nowrap",
+                    tabActiva === tab.value
+                      ? "bg-cream-100 text-ink-900 border border-ink-900/10 shadow-sm"
+                      : "text-ink-500 hover:text-ink-800"
+                  )}
+                >
+                  {tab.label}
+                  <span className={cn(
+                    "rounded-full px-1.5 py-0.5 text-[10px] font-bold",
+                    tabActiva === tab.value ? "bg-teal-400 text-ink-900" : "bg-cream-300 text-ink-500"
+                  )}>
+                    {tab.count}
+                  </span>
+                </button>
               ))}
             </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <CalendarCheck className="h-12 w-12 text-ink-300 mb-4" />
-              <h3 className="font-display text-xl font-bold text-ink-700">
-                No hay reservas
-              </h3>
-              <p className="mt-1 text-sm text-ink-400 max-w-sm">
-                Aún no tienes reservas en esta categoría.
-              </p>
-              <Link href="/explore" className="btn-primary mt-5">
-                Explorar actividades
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-          )
+
+            {/* Lista de reservas */}
+            {cargando ? (
+              <div className="space-y-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="card h-40 animate-pulse bg-cream-200" />
+                ))}
+              </div>
+            ) : reservasFiltradas.length > 0 ? (
+              <div className="space-y-4 animate-stagger">
+                {reservasFiltradas.map((reserva) => (
+                  <BookingCard key={reserva.id} reserva={reserva} />
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <CalendarCheck className="h-12 w-12 text-ink-300 mb-4" />
+                <h3 className="font-display text-xl font-bold text-ink-700">No hay reservas</h3>
+                <p className="mt-1 text-sm text-ink-400 max-w-sm">Aún no tienes reservas en esta categoría.</p>
+                <Link href="/explore" className="btn-primary mt-5">
+                  Explorar actividades
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -141,32 +135,19 @@ export default function BookingsPage() {
 }
 
 function BookingCard({ reserva }: { reserva: Booking }) {
-  const estado = estadoConfig[reserva.estado] ?? estadoConfig.pendiente;
+  const estado = estadoConfig[reserva.estado];
   const IconoEstado = estado.icono;
 
-  if (!reserva.actividad) return null;
-
   return (
-    <Link
-      href={`/activity/${reserva.actividadId}`}
-      className="card block overflow-hidden cursor-pointer"
-    >
+    <Link href={`/activity/${reserva.actividadId}`} className="card block overflow-hidden cursor-pointer">
       <div className="flex flex-col sm:flex-row">
         <div className="relative w-full sm:w-48 h-40 sm:h-auto flex-shrink-0">
-          <Image
-            src={reserva.actividad.imagen}
-            alt={reserva.actividad.nombre}
-            fill
-            className="object-cover"
-            sizes="(max-width: 640px) 100vw, 192px"
-          />
+          <Image src={reserva.actividad.imagen} alt={reserva.actividad.nombre} fill className="object-cover" sizes="(max-width: 640px) 100vw, 192px" />
         </div>
         <div className="flex-1 p-4 space-y-3">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <h3 className="font-semibold text-ink-900 line-clamp-1">
-                {reserva.actividad.nombre}
-              </h3>
+              <h3 className="font-semibold text-ink-900 line-clamp-1">{reserva.actividad.nombre}</h3>
               <div className="flex items-center gap-1.5 mt-1 text-xs text-ink-500">
                 <MapPin className="h-3 w-3" />
                 <span>{reserva.actividad.ubicacion.direccion}</span>
@@ -181,13 +162,7 @@ function BookingCard({ reserva }: { reserva: Booking }) {
           <div className="flex flex-wrap items-center gap-4 text-xs text-ink-500">
             <div className="flex items-center gap-1.5">
               <CalendarCheck className="h-3.5 w-3.5" />
-              <span>
-                {new Date(reserva.fecha).toLocaleDateString("es-CL", {
-                  weekday: "short",
-                  day: "numeric",
-                  month: "short",
-                })}
-              </span>
+              <span>{new Date(reserva.fecha).toLocaleDateString("es-CL", { weekday: "short", day: "numeric", month: "short" })}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <Clock className="h-3.5 w-3.5" />
@@ -200,9 +175,7 @@ function BookingCard({ reserva }: { reserva: Booking }) {
           </div>
 
           <div className="flex items-center justify-between pt-2 border-t border-ink-900/6">
-            <span className="text-sm font-bold text-ink-900">
-              {formatearPrecio(reserva.total)}
-            </span>
+            <span className="text-sm font-bold text-ink-900">{formatearPrecio(reserva.total)}</span>
             <span className="text-xs font-medium text-teal-600 flex items-center gap-1">
               Ver detalle <ArrowRight className="h-3 w-3" />
             </span>

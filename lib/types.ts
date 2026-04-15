@@ -68,6 +68,11 @@ export interface User {
   email: string;
   avatar: string;
   preferencias: ActivityCategory[];
+  edad?: number;
+  sexo?: "masculino" | "femenino" | "no_binario" | "prefiero_no_decir";
+  ciudad?: string;
+  lat?: number;
+  lng?: number;
 }
 
 export interface FilterState {

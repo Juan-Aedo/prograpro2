@@ -3,19 +3,60 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Compass, Mail, ArrowRight, Shield } from "lucide-react";
+import { Compass, Mail, Lock, ArrowRight, Shield, Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase";
+import { cn } from "@/lib/utils";
 
+type Tab = "password" | "otp";
 type Vista = "opciones" | "verificar";
 
 export default function LoginPage() {
+  const [tab, setTab] = useState<Tab>("password");
   const [vista, setVista] = useState<Vista>("opciones");
+
+  // Campos compartidos
   const [email, setEmail] = useState("");
+
+  // Tab contraseña
+  const [password, setPassword] = useState("");
+  const [mostrarPassword, setMostrarPassword] = useState(false);
+
+  // Tab OTP
   const [token, setToken] = useState("");
+
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(false);
   const router = useRouter();
 
+  // ── Login con contraseña ────────────────────────────────────────────────
+  const loginConPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setCargando(true);
+    const supabase = createClient();
+
+    if (!supabase) {
+      setError("Supabase no está configurado. Añade las claves en .env.local.");
+      setCargando(false);
+      return;
+    }
+
+    const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (err) {
+      if (err.message.includes("Invalid login credentials")) {
+        setError("Email o contraseña incorrectos. ¿Aún no tienes cuenta?");
+      } else {
+        setError("No se pudo iniciar sesión. Intenta de nuevo.");
+      }
+    } else {
+      router.push("/");
+      router.refresh();
+    }
+    setCargando(false);
+  };
+
+  // ── Login con OTP — enviar código ───────────────────────────────────────
   const enviarOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -28,19 +69,20 @@ export default function LoginPage() {
       return;
     }
 
-    const { error } = await supabase.auth.signInWithOtp({
+    const { error: err } = await supabase.auth.signInWithOtp({
       email,
       options: { shouldCreateUser: false },
     });
 
-    if (error) {
-      setError("No se pudo enviar el código. Verifica que el email esté registrado.");
+    if (err) {
+      setError("No se pudo enviar el código. Verificá que el email esté registrado.");
     } else {
       setVista("verificar");
     }
     setCargando(false);
   };
 
+  // ── Login con OTP — verificar código ───────────────────────────────────
   const verificarOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -53,13 +95,9 @@ export default function LoginPage() {
       return;
     }
 
-    const { error } = await supabase.auth.verifyOtp({
-      email,
-      token,
-      type: "email",
-    });
+    const { error: err } = await supabase.auth.verifyOtp({ email, token, type: "email" });
 
-    if (error) {
+    if (err) {
       setError("Código incorrecto o expirado. Intenta de nuevo.");
     } else {
       router.push("/");
@@ -68,6 +106,7 @@ export default function LoginPage() {
     setCargando(false);
   };
 
+  // ── Login con Google ────────────────────────────────────────────────────
   const loginConGoogle = async () => {
     setCargando(true);
     const supabase = createClient();
@@ -78,19 +117,20 @@ export default function LoginPage() {
     });
   };
 
-  if (vista === "verificar") {
+  // ── Vista: verificación OTP ─────────────────────────────────────────────
+  if (tab === "otp" && vista === "verificar") {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
         <div className="w-full max-w-md animate-fade-in">
           <div className="flex flex-col items-center mb-8">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-400 border border-ink-900/20 mb-4 transition-all duration-150 hover:shadow-offset-sm">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-400 border border-ink-900/20 mb-4">
               <Shield className="h-6 w-6 text-ink-900" />
             </div>
             <h1 className="font-display text-2xl font-bold text-ink-900 tracking-tight">
               Revisa tu email
             </h1>
             <p className="mt-1 text-sm text-ink-500 text-center">
-              Enviamos un código de 6 dígitos a{" "}
+              Enviamos un código a{" "}
               <span className="font-semibold text-ink-700">{email}</span>
             </p>
           </div>
@@ -99,15 +139,12 @@ export default function LoginPage() {
             <form onSubmit={verificarOtp} className="space-y-5">
               <div>
                 <label className="flex items-center gap-1.5 text-xs font-medium text-ink-500 mb-1.5">
-                  <Shield className="h-3.5 w-3.5" />
-                  Código de verificación
+                  <Shield className="h-3.5 w-3.5" /> Código de verificación
                 </label>
                 <input
                   type="text"
                   value={token}
-                  onChange={(e) =>
-                    setToken(e.target.value.replace(/\D/g, "").slice(0, 8))
-                  }
+                  onChange={(e) => setToken(e.target.value.replace(/\D/g, "").slice(0, 8))}
                   placeholder="00000000"
                   className="input-field text-center text-2xl tracking-[0.5em] font-mono"
                   maxLength={8}
@@ -116,13 +153,11 @@ export default function LoginPage() {
                 />
               </div>
 
-              {error && (
-                <p className="text-xs text-red-500 animate-scale-in">{error}</p>
-              )}
+              {error && <p className="text-xs text-red-500 animate-scale-in">{error}</p>}
 
               <button
                 type="submit"
-                disabled={cargando || token.length < 6 || token.length > 8}
+                disabled={cargando || token.length < 6}
                 className="btn-primary w-full py-3"
               >
                 {cargando ? (
@@ -146,6 +181,7 @@ export default function LoginPage() {
     );
   }
 
+  // ── Vista principal ─────────────────────────────────────────────────────
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
       <div className="w-full max-w-md animate-fade-in">
@@ -162,6 +198,7 @@ export default function LoginPage() {
         </div>
 
         <div className="card p-6 sm:p-8">
+          {/* Google */}
           <button
             onClick={loginConGoogle}
             disabled={cargando}
@@ -176,39 +213,117 @@ export default function LoginPage() {
             Continuar con Google
           </button>
 
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-ink-200" />
-            </div>
-            <div className="relative flex justify-center">
-              <span className="bg-cream-100 px-3 text-xs text-ink-400">
-                o usa un código de un solo uso
-              </span>
-            </div>
+          {/* Tabs */}
+          <div className="flex rounded-xl border border-ink-200 overflow-hidden mb-5">
+            <button
+              type="button"
+              onClick={() => { setTab("password"); setError(""); }}
+              className={cn(
+                "flex-1 py-2 text-sm font-medium transition-colors cursor-pointer",
+                tab === "password"
+                  ? "bg-teal-400 text-ink-900"
+                  : "bg-transparent text-ink-500 hover:bg-cream-200"
+              )}
+            >
+              Con contraseña
+            </button>
+            <button
+              type="button"
+              onClick={() => { setTab("otp"); setError(""); setVista("opciones"); }}
+              className={cn(
+                "flex-1 py-2 text-sm font-medium transition-colors cursor-pointer",
+                tab === "otp"
+                  ? "bg-teal-400 text-ink-900"
+                  : "bg-transparent text-ink-500 hover:bg-cream-200"
+              )}
+            >
+              Con código único
+            </button>
           </div>
 
-          <form onSubmit={enviarOtp} className="space-y-5">
-            <div>
-              <label htmlFor="email" className="flex items-center gap-1.5 text-xs font-medium text-ink-500 mb-1.5">
-                <Mail className="h-3.5 w-3.5" /> Email
-              </label>
-              <input
-                id="email" type="email" value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="tu@email.com" className="input-field" required
-              />
-            </div>
+          {/* Form contraseña */}
+          {tab === "password" && (
+            <form onSubmit={loginConPassword} className="space-y-5">
+              <div>
+                <label htmlFor="email-pw" className="flex items-center gap-1.5 text-xs font-medium text-ink-500 mb-1.5">
+                  <Mail className="h-3.5 w-3.5" /> Email
+                </label>
+                <input
+                  id="email-pw"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="tu@email.com"
+                  className="input-field"
+                  required
+                />
+              </div>
 
-            {error && <p className="text-xs text-red-500 animate-scale-in">{error}</p>}
+              <div>
+                <label htmlFor="password" className="flex items-center gap-1.5 text-xs font-medium text-ink-500 mb-1.5">
+                  <Lock className="h-3.5 w-3.5" /> Contraseña
+                </label>
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={mostrarPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Tu contraseña"
+                    className="input-field pr-10"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setMostrarPassword(!mostrarPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-700 transition-colors cursor-pointer"
+                  >
+                    {mostrarPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
 
-            <button type="submit" disabled={cargando} className="btn-primary w-full py-3">
-              {cargando ? (
-                <span className="animate-pulse-soft">Enviando código...</span>
-              ) : (
-                <> Enviar código <ArrowRight className="h-4 w-4" /> </>
-              )}
-            </button>
-          </form>
+              {error && <p className="text-xs text-red-500 animate-scale-in">{error}</p>}
+
+              <button type="submit" disabled={cargando} className="btn-primary w-full py-3">
+                {cargando ? (
+                  <span className="animate-pulse-soft">Ingresando...</span>
+                ) : (
+                  <> Iniciar Sesión <ArrowRight className="h-4 w-4" /> </>
+                )}
+              </button>
+            </form>
+          )}
+
+          {/* Form OTP */}
+          {tab === "otp" && (
+            <form onSubmit={enviarOtp} className="space-y-5">
+              <div>
+                <label htmlFor="email-otp" className="flex items-center gap-1.5 text-xs font-medium text-ink-500 mb-1.5">
+                  <Mail className="h-3.5 w-3.5" /> Email
+                </label>
+                <input
+                  id="email-otp"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="tu@email.com"
+                  className="input-field"
+                  required
+                />
+              </div>
+
+              {error && <p className="text-xs text-red-500 animate-scale-in">{error}</p>}
+
+              <button type="submit" disabled={cargando} className="btn-primary w-full py-3">
+                {cargando ? (
+                  <span className="animate-pulse-soft">Enviando código...</span>
+                ) : (
+                  <> Enviar código <ArrowRight className="h-4 w-4" /> </>
+                )}
+              </button>
+            </form>
+          )}
 
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
@@ -222,7 +337,7 @@ export default function LoginPage() {
         </div>
 
         <p className="mt-4 text-center text-xs text-ink-400">
-          Te enviaremos un código seguro a tu correo
+          Te enviamos un código seguro a tu correo si elegís ese método
         </p>
       </div>
     </div>

@@ -1,6 +1,8 @@
 import { Suspense } from "react";
-import { actividades, categoriaLabels } from "@/lib/mock-data";
+import { prisma } from "@/lib/db";
+import { serializeActivity } from "@/lib/serializers";
 import { obtenerClima } from "@/lib/weather";
+import { categoriaLabels } from "@/lib/categorias";
 import { ActivityCard } from "@/components/ActivityCard";
 import { WeatherBadge } from "@/components/WeatherBadge";
 import { HomeHero } from "@/components/HomeHero";
@@ -8,18 +10,18 @@ import { CategoryScroller } from "@/components/CategoryScroller";
 import { TrendingUp, Sparkles, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
-const destacadas  = actividades.filter((a) => a.destacada);
-const enTendencia = actividades.filter((a) => a.enTendencia);
-const categorias  = Object.entries(categoriaLabels);
-
-// Coordenadas por defecto: Santiago de Chile
-const DEFAULT_LAT = -33.4489;
-const DEFAULT_LNG = -70.6693;
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  // Clima real desde Open-Meteo (sin API key, gratis)
-  // En producción, las coordenadas vendrán del usuario vía /api/weather
-  const clima = await obtenerClima(DEFAULT_LAT, DEFAULT_LNG);
+  const [destacadasRows, enTendenciaRows, clima] = await Promise.all([
+    prisma.activity.findMany({ where: { destacada: true }, orderBy: { createdAt: "asc" } }),
+    prisma.activity.findMany({ where: { enTendencia: true }, orderBy: { createdAt: "asc" } }),
+    obtenerClima(),
+  ]);
+
+  const destacadas = destacadasRows.map(serializeActivity);
+  const enTendencia = enTendenciaRows.map(serializeActivity);
+  const categorias = Object.entries(categoriaLabels);
 
   return (
     <div className="pb-24 md:pb-8">
@@ -35,10 +37,7 @@ export default async function HomePage() {
               <p className="eyebrow mb-1">Explora</p>
               <h2 className="section-title">Por categoría</h2>
             </div>
-            <Link
-              href="/explore"
-              className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-teal-600 hover:text-teal-700 transition-colors cursor-pointer"
-            >
+            <Link href="/explore" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-teal-600 hover:text-teal-700 transition-colors cursor-pointer">
               Ver todas <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -58,10 +57,7 @@ export default async function HomePage() {
               <h2 className="section-title">En Tendencia</h2>
               <p className="section-subtitle mt-1">Lo más popular entre los usuarios</p>
             </div>
-            <Link
-              href="/explore?q=tendencia"
-              className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-teal-600 hover:text-teal-700 transition-colors cursor-pointer"
-            >
+            <Link href="/explore?q=tendencia" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-teal-600 hover:text-teal-700 transition-colors cursor-pointer">
               Ver todas <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -83,14 +79,9 @@ export default async function HomePage() {
                 Personalizadas
               </p>
               <h2 className="section-title">Recomendadas para ti</h2>
-              <p className="section-subtitle mt-1">
-                Basado en tus preferencias y el clima de hoy ({clima.descripcion.toLowerCase()} · {clima.temperatura}°C)
-              </p>
+              <p className="section-subtitle mt-1">Basado en tus preferencias y el clima</p>
             </div>
-            <Link
-              href="/explore"
-              className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-teal-600 hover:text-teal-700 transition-colors cursor-pointer"
-            >
+            <Link href="/explore" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-teal-600 hover:text-teal-700 transition-colors cursor-pointer">
               Ver todas <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -105,13 +96,11 @@ export default async function HomePage() {
 
         {/* ——— Clima + CTA ——— */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-5 pb-4">
-          <Suspense fallback={
-            <div className="rounded-2xl border border-ink-200 h-52 animate-pulse bg-cream-200" />
-          }>
+          <Suspense fallback={<div className="rounded-2xl border border-ink-200 h-52 animate-pulse bg-cream-200" />}>
             <WeatherBadge clima={clima} />
           </Suspense>
 
-          {/* CTA card */}
+          {/* CTA card — teal sólido con borde negro */}
           <div className="relative overflow-hidden rounded-2xl border border-ink-900 bg-teal-400 p-8 flex flex-col justify-between min-h-[220px]">
             <div className="pointer-events-none absolute -right-8 -bottom-8 h-48 w-48 rounded-full bg-teal-300/50" />
             <div className="pointer-events-none absolute -right-2 top-6 h-24 w-24 rounded-full border-2 border-ink-900/10" />
