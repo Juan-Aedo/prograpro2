@@ -1,4 +1,4 @@
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
@@ -8,5 +8,7 @@ export function createClient() {
     console.warn("Supabase no está configurado");
     return null;
   }
-  return createSupabaseClient(supabaseUrl, supabaseAnonKey);
+  // createBrowserClient escribe la sesión en cookies además de localStorage,
+  // así el middleware (SSR) puede verla al renderizar rutas protegidas.
+  return createBrowserClient(supabaseUrl, supabaseAnonKey);
 }

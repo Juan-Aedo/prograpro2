@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const RUTAS_PROTEGIDAS = ["/bookings", "/profile"];
+const RUTAS_PROTEGIDAS = ["/bookings", "/profile", "/cuenta"];
 const RUTAS_AUTH = ["/login", "/register"];
 
 function supabaseConfigurado(): boolean {

@@ -117,7 +117,7 @@ export function Navbar() {
                     </div>
                     <div className="p-1.5 space-y-0.5">
                       <Link
-                        href="/profile"
+                        href="/cuenta"
                         className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-ink-700 hover:bg-cream-200 transition-colors cursor-pointer"
                       >
                         <Settings className="h-4 w-4 text-ink-400" />
@@ -180,11 +180,11 @@ export function Navbar() {
             {estaAutenticado && usuario ? (
               <>
                 <Link
-                  href="/profile"
+                  href="/cuenta"
                   onClick={() => setMenuAbierto(false)}
                   className={cn(
                     "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-150 cursor-pointer",
-                    pathname === "/profile"
+                    pathname === "/cuenta"
                       ? "bg-teal-100 text-teal-700 border border-teal-200"
                       : "text-ink-600 hover:bg-cream-200"
                   )}
