@@ -1,7 +1,5 @@
 import type { WeatherData, WeatherForecastItem } from "./types";
-
-const SANTIAGO_LAT = -33.4489;
-const SANTIAGO_LNG = -70.6693;
+import { SANTIAGO_CIUDAD, SANTIAGO_LAT, SANTIAGO_LNG } from "./constants";
 
 const MOCK: WeatherData = {
   temperatura: 22,
@@ -10,13 +8,13 @@ const MOCK: WeatherData = {
   icono: "partly-cloudy",
   humedad: 55,
   viento: 12,
-  ciudad: "Santiago Centro",
+  ciudad: SANTIAGO_CIUDAD,
   tempMin: 14,
   tempMax: 26,
   pronostico: [],
 };
 
-function mapWeatherCode(code: number): { icono: string; descripcion: string } {
+export function mapWeatherCode(code: number): { icono: string; descripcion: string } {
   if (code === 0) return { icono: "clear", descripcion: "despejado" };
   if (code === 1) return { icono: "clear", descripcion: "mayormente despejado" };
   if (code === 2) return { icono: "partly-cloudy", descripcion: "parcialmente nublado" };
@@ -31,8 +29,19 @@ function mapWeatherCode(code: number): { icono: string; descripcion: string } {
   return { icono: "partly-cloudy", descripcion: "sin datos" };
 }
 
-interface OpenMeteoResponse {
+export function urlOpenMeteo(lat: number, lng: number): string {
+  return (
+    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}` +
+    `&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code` +
+    `&hourly=temperature_2m,weather_code` +
+    `&daily=temperature_2m_max,temperature_2m_min` +
+    `&timezone=auto&forecast_days=2&wind_speed_unit=kmh`
+  );
+}
+
+export interface OpenMeteoResponse {
   current?: {
+    time?: string;
     temperature_2m?: number;
     apparent_temperature?: number;
     relative_humidity_2m?: number;
@@ -50,42 +59,41 @@ interface OpenMeteoResponse {
   };
 }
 
-export async function obtenerClima(lat?: number, lng?: number): Promise<WeatherData> {
-  const latFinal = lat ?? SANTIAGO_LAT;
-  const lngFinal = lng ?? SANTIAGO_LNG;
+export function construirPronostico(
+  data: OpenMeteoResponse,
+  { incluirFuturo = false }: { incluirFuturo?: boolean } = {}
+): WeatherForecastItem[] {
+  const horas = data.hourly?.time ?? [];
+  const temps = data.hourly?.temperature_2m ?? [];
+  const codes = data.hourly?.weather_code ?? [];
+  const ahora = new Date();
+  const hoyStr = ahora.toISOString().split("T")[0];
+  const horaActual = ahora.getHours();
 
-  try {
-    const url =
-      `https://api.open-meteo.com/v1/forecast?latitude=${latFinal}&longitude=${lngFinal}` +
-      `&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code` +
-      `&hourly=temperature_2m,weather_code` +
-      `&daily=temperature_2m_max,temperature_2m_min` +
-      `&timezone=auto&forecast_days=2&wind_speed_unit=kmh`;
+  const pronostico: WeatherForecastItem[] = [];
+  for (let i = 0; i < horas.length && pronostico.length < 6; i++) {
+    const t = horas[i];
+    if (!t) continue;
+    const [fecha, tiempo] = t.split("T");
+    if (fecha !== hoyStr) continue;
+    const h = Number(tiempo?.slice(0, 2) ?? 0);
+    if (h < horaActual) continue;
+    if (h % 3 !== 0) continue;
+    const info = mapWeatherCode(codes[i] ?? 0);
+    pronostico.push({
+      hora: tiempo?.slice(0, 5) ?? "",
+      temperatura: Math.round(temps[i] ?? 0),
+      icono: info.icono,
+      descripcion: info.descripcion,
+    });
+  }
 
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) return { ...MOCK, actualizadoEn: new Date().toISOString() };
-
-    const data: OpenMeteoResponse = await res.json();
-    const current = data.current;
-    if (!current) return { ...MOCK, actualizadoEn: new Date().toISOString() };
-
-    const { icono, descripcion } = mapWeatherCode(current.weather_code ?? 0);
-
-    const horas = data.hourly?.time ?? [];
-    const temps = data.hourly?.temperature_2m ?? [];
-    const codes = data.hourly?.weather_code ?? [];
-    const ahora = new Date();
-    const hoyStr = ahora.toISOString().split("T")[0];
-    const horaActual = ahora.getHours();
-
-    const pronostico: WeatherForecastItem[] = [];
-    for (let i = 0; i < horas.length && pronostico.length < 6; i++) {
+  if (incluirFuturo && pronostico.length === 0) {
+    for (let i = 0; i < horas.length && pronostico.length < 5; i++) {
       const t = horas[i];
       if (!t) continue;
-      const [fecha, tiempo] = t.split("T");
-      if (fecha !== hoyStr) continue;
+      const [, tiempo] = t.split("T");
       const h = Number(tiempo?.slice(0, 2) ?? 0);
-      if (h < horaActual) continue;
       if (h % 3 !== 0) continue;
       const info = mapWeatherCode(codes[i] ?? 0);
       pronostico.push({
@@ -95,6 +103,25 @@ export async function obtenerClima(lat?: number, lng?: number): Promise<WeatherD
         descripcion: info.descripcion,
       });
     }
+  }
+
+  return pronostico;
+}
+
+export async function obtenerClima(lat?: number, lng?: number): Promise<WeatherData> {
+  const latFinal = lat ?? SANTIAGO_LAT;
+  const lngFinal = lng ?? SANTIAGO_LNG;
+
+  try {
+    const res = await fetch(urlOpenMeteo(latFinal, lngFinal), { cache: "no-store" });
+    if (!res.ok) return { ...MOCK, actualizadoEn: new Date().toISOString() };
+
+    const data: OpenMeteoResponse = await res.json();
+    const current = data.current;
+    if (!current) return { ...MOCK, actualizadoEn: new Date().toISOString() };
+
+    const { icono, descripcion } = mapWeatherCode(current.weather_code ?? 0);
+    const pronostico = construirPronostico(data);
 
     return {
       temperatura: Math.round(current.temperature_2m ?? 0),
@@ -103,7 +130,7 @@ export async function obtenerClima(lat?: number, lng?: number): Promise<WeatherD
       icono,
       humedad: Math.round(current.relative_humidity_2m ?? 0),
       viento: Math.round(current.wind_speed_10m ?? 0),
-      ciudad: latFinal === SANTIAGO_LAT && lngFinal === SANTIAGO_LNG ? "Santiago Centro" : "Tu ubicación",
+      ciudad: latFinal === SANTIAGO_LAT && lngFinal === SANTIAGO_LNG ? SANTIAGO_CIUDAD : "Tu ubicación",
       tempMin: Math.round(data.daily?.temperature_2m_min?.[0] ?? current.temperature_2m ?? 0),
       tempMax: Math.round(data.daily?.temperature_2m_max?.[0] ?? current.temperature_2m ?? 0),
       pronostico,
@@ -123,3 +150,5 @@ export function sugerirPorClima(clima: WeatherData): string[] {
   }
   return ["parques", "musica", "gastronomia", "aire-libre"];
 }
+
+export { MOCK as MOCK_WEATHER };

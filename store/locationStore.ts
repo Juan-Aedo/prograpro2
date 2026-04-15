@@ -3,9 +3,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { LocationMode } from "@/lib/types";
-
-const SANTIAGO_LAT = -33.4489;
-const SANTIAGO_LNG = -70.6693;
+import { SANTIAGO_CIUDAD, SANTIAGO_LAT, SANTIAGO_LNG } from "@/lib/constants";
 
 interface LocationState {
   lat: number;
@@ -23,7 +21,7 @@ export const useLocationStore = create<LocationState>()(
     (set, get) => ({
       lat: SANTIAGO_LAT,
       lng: SANTIAGO_LNG,
-      ciudad: "Santiago Centro",
+      ciudad: SANTIAGO_CIUDAD,
       modo: "default",
 
       setGps: (lat, lng, ciudad) => {
@@ -39,7 +37,7 @@ export const useLocationStore = create<LocationState>()(
         set({
           lat: SANTIAGO_LAT,
           lng: SANTIAGO_LNG,
-          ciudad: "Santiago Centro",
+          ciudad: SANTIAGO_CIUDAD,
           modo: "default",
         });
       },

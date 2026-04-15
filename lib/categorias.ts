@@ -1,4 +1,6 @@
-export const categoriaIconos: Record<string, string> = {
+import type { ActivityCategory } from "./types";
+
+export const categoriaIconos: Record<ActivityCategory, string> = {
   cine: "Film",
   teatro: "Drama",
   parques: "Trees",
@@ -11,7 +13,7 @@ export const categoriaIconos: Record<string, string> = {
   talleres: "Palette",
 };
 
-export const categoriaLabels: Record<string, string> = {
+export const categoriaLabels: Record<ActivityCategory, string> = {
   cine: "Cine",
   teatro: "Teatro",
   parques: "Parques",

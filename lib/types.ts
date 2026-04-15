@@ -1,5 +1,7 @@
 // Tipos principales de Panoramas
 
+export type LocationMode = "default" | "gps" | "manual";
+
 export type ActivityCategory =
   | "cine"
   | "teatro"

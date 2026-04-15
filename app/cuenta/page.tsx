@@ -17,7 +17,8 @@ import {
 import Link from "next/link";
 import { useUserStore } from "@/store/userStore";
 import { useLocationStore } from "@/store/locationStore";
-import { categoriaLabels } from "@/lib/mock-data";
+import { categoriaLabels } from "@/lib/categorias";
+import { useGeoLocation, geocodificarTexto } from "@/lib/hooks/useGeoLocation";
 import type { ActivityCategory } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -51,7 +52,7 @@ export default function CuentaPage() {
   // Estado UI
   const [guardandoPersonal, setGuardandoPersonal] = useState(false);
   const [guardandoPrefs, setGuardandoPrefs] = useState(false);
-  const [gpsLoading, setGpsLoading] = useState(false);
+  const { loading: gpsLoading, detectar: detectarGps } = useGeoLocation();
   const [okPersonal, setOkPersonal] = useState(false);
   const [okPrefs, setOkPrefs] = useState(false);
   const [error, setError] = useState("");
@@ -76,38 +77,16 @@ export default function CuentaPage() {
     }
   }, [usuario]);
 
-  const detectarUbicacion = () => {
-    if (!navigator.geolocation) {
-      setError("Tu navegador no soporta geolocalización.");
+  const detectarUbicacion = async () => {
+    setError("");
+    const result = await detectarGps();
+    if (!result) {
+      setError("No se pudo obtener tu ubicación. Escríbela manualmente.");
       return;
     }
-    setGpsLoading(true);
-    setError("");
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude, longitude } = pos.coords;
-        setLat(latitude);
-        setLng(longitude);
-        try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
-            { headers: { "Accept-Language": "es" } }
-          );
-          const data = await res.json();
-          const addr = data.address;
-          setCiudad(
-            addr?.city ?? addr?.town ?? addr?.village ?? addr?.county ?? ""
-          );
-        } catch {
-          // coordenadas disponibles aunque falle el nombre
-        }
-        setGpsLoading(false);
-      },
-      () => {
-        setError("No se pudo obtener tu ubicación. Escríbela manualmente.");
-        setGpsLoading(false);
-      }
-    );
+    setLat(result.lat);
+    setLng(result.lng);
+    if (result.ciudad) setCiudad(result.ciudad);
   };
 
   const guardarPersonal = async (e: React.FormEvent) => {
@@ -122,22 +101,12 @@ export default function CuentaPage() {
 
       // Geocodificar si escribió ciudad sin lat/lng
       if (ciudadFinal && (latFinal == null || lngFinal == null)) {
-        try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(
-              ciudadFinal
-            )}`,
-            { headers: { "Accept-Language": "es" } }
-          );
-          const data = await res.json();
-          if (Array.isArray(data) && data[0]) {
-            latFinal = parseFloat(data[0].lat);
-            lngFinal = parseFloat(data[0].lon);
-            setLat(latFinal);
-            setLng(lngFinal);
-          }
-        } catch {
-          // si falla, guardamos solo el texto
+        const geo = await geocodificarTexto(ciudadFinal);
+        if (geo) {
+          latFinal = geo.lat;
+          lngFinal = geo.lng;
+          setLat(latFinal);
+          setLng(lngFinal);
         }
       }
 

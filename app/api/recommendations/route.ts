@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { serializeActivity } from "@/lib/serializers";
 import { obtenerClima } from "@/lib/weather";
+import {
+  calcularDistanciaKm,
+  formatearDistancia,
+  generarUrlMapsDestino,
+} from "@/lib/maps";
 import type {
   Activity,
   ActivityCategory,
@@ -12,35 +17,6 @@ import type {
 
 // ── Categorías que requieren buen clima (actividades al aire libre) ──
 const CATEGORIAS_EXTERIOR: ActivityCategory[] = ["parques", "aire-libre", "deportes"];
-
-// ── Haversine: distancia en km entre dos coordenadas ──
-function haversineKm(
-  lat1: number, lng1: number,
-  lat2: number, lng2: number
-): number {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-    Math.cos((lat2 * Math.PI) / 180) *
-    Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function formatearDistancia(km: number): string {
-  if (km < 1) return `${Math.round(km * 1000)} m`;
-  return `${km.toFixed(1)} km`;
-}
-
-function generarUrlMaps(lat: number, lng: number, nombre: string): string {
-  return (
-    `https://www.google.com/maps/dir/?api=1` +
-    `&destination=${encodeURIComponent(nombre)}` +
-    `&destination_place_id=${lat},${lng}`
-  );
-}
 
 // ── Compatibilidad climática por heurística de categoría ──
 function esCompatibleConClima(
@@ -178,7 +154,7 @@ export async function POST(request: NextRequest) {
     const candidatosConDist = candidatos
       .map((a) => ({
         actividad: a,
-        km: haversineKm(lat, lng, a.ubicacion.lat, a.ubicacion.lng),
+        km: calcularDistanciaKm(lat, lng, a.ubicacion.lat, a.ubicacion.lng),
       }))
       .filter(({ km }) => radioKm === 0 || km <= radioKm);
 
@@ -215,7 +191,7 @@ export async function POST(request: NextRequest) {
           compatibleConClima: compatible,
           distanciaTexto,
           distanciaMetros: Math.round(km * 1000),
-          urlMaps: generarUrlMaps(
+          urlMaps: generarUrlMapsDestino(
             actividad.ubicacion.lat,
             actividad.ubicacion.lng,
             actividad.nombre
@@ -240,8 +216,7 @@ export async function POST(request: NextRequest) {
     };
 
     return NextResponse.json(response);
-  } catch (error) {
-    console.error("Error en /api/recommendations:", error);
+  } catch {
     return NextResponse.json(
       { error: "Error al generar recomendaciones" },
       { status: 500 }

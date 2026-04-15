@@ -1,41 +1,35 @@
-// Utilidades para Google Maps (usa mock mientras no haya API key)
+// Utilidades geográficas: distancias y URLs a Google Maps.
 
-export interface Coordenadas {
-  lat: number;
-  lng: number;
-}
+const aRadianes = (grados: number): number => (grados * Math.PI) / 180;
 
-// Calcula distancia entre dos puntos (fórmula de Haversine)
-export function calcularDistancia(
-  punto1: Coordenadas,
-  punto2: Coordenadas
+export function calcularDistanciaKm(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
 ): number {
   const R = 6371;
-  const dLat = aRadianes(punto2.lat - punto1.lat);
-  const dLng = aRadianes(punto2.lng - punto1.lng);
+  const dLat = aRadianes(lat2 - lat1);
+  const dLng = aRadianes(lng2 - lng1);
   const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(aRadianes(punto1.lat)) *
-      Math.cos(aRadianes(punto2.lat)) *
-      Math.sin(dLng / 2) *
-      Math.sin(dLng / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(aRadianes(lat1)) * Math.cos(aRadianes(lat2)) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function aRadianes(grados: number): number {
-  return grados * (Math.PI / 180);
-}
-
-// Formatea distancia para mostrar al usuario
 export function formatearDistancia(km: number): string {
-  if (km < 1) {
-    return `${Math.round(km * 1000)} m`;
-  }
+  if (km < 1) return `${Math.round(km * 1000)} m`;
   return `${km.toFixed(1)} km`;
 }
 
-// Genera URL para abrir Google Maps con una dirección
 export function generarUrlMaps(lat: number, lng: number): string {
   return `https://www.google.com/maps?q=${lat},${lng}`;
+}
+
+export function generarUrlMapsDestino(lat: number, lng: number, nombre: string): string {
+  return (
+    `https://www.google.com/maps/dir/?api=1` +
+    `&destination=${encodeURIComponent(nombre)}` +
+    `&destination_place_id=${lat},${lng}`
+  );
 }

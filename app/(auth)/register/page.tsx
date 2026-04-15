@@ -8,7 +8,8 @@ import {
   Lock, Eye, EyeOff, MapPin, Loader2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
-import { categoriaLabels } from "@/lib/mock-data";
+import { categoriaLabels } from "@/lib/categorias";
+import { useGeoLocation } from "@/lib/hooks/useGeoLocation";
 import type { ActivityCategory } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -36,7 +37,7 @@ export default function RegisterPage() {
   const [ciudad, setCiudad] = useState<string>("");
   const [lat, setLat]       = useState<number | null>(null);
   const [lng, setLng]       = useState<number | null>(null);
-  const [gpsLoading, setGpsLoading] = useState(false);
+  const { loading: gpsLoading, detectar: detectarGps } = useGeoLocation();
 
   // ── Modo OTP ────────────────────────────────────────────────────────────
   const [pasoOtp, setPasoOtp] = useState<1 | 2 | 3>(1);
@@ -48,39 +49,16 @@ export default function RegisterPage() {
     );
   };
 
-  // ── GPS ─────────────────────────────────────────────────────────────────
-  const detectarUbicacion = () => {
-    if (!navigator.geolocation) {
-      setError("Tu navegador no soporta geolocalización.");
+  const detectarUbicacion = async () => {
+    setError("");
+    const result = await detectarGps();
+    if (!result) {
+      setError("No se pudo obtener tu ubicación. Escríbela manualmente.");
       return;
     }
-    setGpsLoading(true);
-    setError("");
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude, longitude } = pos.coords;
-        setLat(latitude);
-        setLng(longitude);
-        try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
-            { headers: { "Accept-Language": "es" } }
-          );
-          const data = await res.json();
-          const addr = data.address;
-          const nombreCiudad =
-            addr?.city ?? addr?.town ?? addr?.village ?? addr?.county ?? "";
-          setCiudad(nombreCiudad);
-        } catch {
-          // Si falla el geocoding, al menos tenemos las coordenadas
-        }
-        setGpsLoading(false);
-      },
-      () => {
-        setError("No se pudo obtener tu ubicación. Escríbela manualmente.");
-        setGpsLoading(false);
-      }
-    );
+    setLat(result.lat);
+    setLng(result.lng);
+    if (result.ciudad) setCiudad(result.ciudad);
   };
 
   // ══════════════════════════════════════════════════════════════════════

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { User, Mail, MapPin, Save, Loader2, Check } from "lucide-react";
 import { useUserStore } from "@/store/userStore";
 import { useLocationStore } from "@/store/locationStore";
-import { categoriaLabels } from "@/lib/mock-data";
+import { categoriaLabels } from "@/lib/categorias";
 import type { ActivityCategory } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
