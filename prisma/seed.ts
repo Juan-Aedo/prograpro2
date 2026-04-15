@@ -263,39 +263,48 @@ async function main() {
   });
   console.log(`Demo user: ${demoEmail} / demo1234`);
 
-  await prisma.booking.deleteMany({ where: { userId: demoUser.id } });
-  await prisma.booking.createMany({
-    data: [
-      {
-        userId: demoUser.id,
-        activityId: "3",
-        fecha: "2026-04-15",
-        hora: "19:00",
-        personas: 2,
-        estado: "confirmada",
-        total: 50000,
-      },
-      {
-        userId: demoUser.id,
-        activityId: "7",
-        fecha: "2026-04-12",
-        hora: "17:00",
-        personas: 4,
-        estado: "pendiente",
-        total: 60000,
-      },
-      {
-        userId: demoUser.id,
-        activityId: "1",
-        fecha: "2026-04-05",
-        hora: "20:00",
-        personas: 2,
-        estado: "completada",
-        total: 15000,
-      },
-    ],
-  });
-  console.log("Inserted 3 demo bookings");
+  // Get the created activities to use their actual IDs
+  const act1 = await prisma.activity.findFirst({ where: { nombre: "Cine Hoyts — Estreno Dune: Parte 3" } });
+  const act7 = await prisma.activity.findFirst({ where: { nombre: "Festival de Jazz en el Parque" } });
+  const act3 = await prisma.activity.findFirst({ where: { nombre: "Teatro Municipal — La Traviata" } });
+
+  if (act1 && act7 && act3) {
+    await prisma.booking.deleteMany({ where: { userId: demoUser.id } });
+    await prisma.booking.createMany({
+      data: [
+        {
+          userId: demoUser.id,
+          activityId: act3.id,
+          fecha: "2026-04-15",
+          hora: "19:00",
+          personas: 2,
+          estado: "confirmada",
+          total: 50000,
+        },
+        {
+          userId: demoUser.id,
+          activityId: act7.id,
+          fecha: "2026-04-12",
+          hora: "17:00",
+          personas: 4,
+          estado: "pendiente",
+          total: 60000,
+        },
+        {
+          userId: demoUser.id,
+          activityId: act1.id,
+          fecha: "2026-04-05",
+          hora: "20:00",
+          personas: 2,
+          estado: "completada",
+          total: 15000,
+        },
+      ],
+    });
+    console.log("Inserted 3 demo bookings");
+  } else {
+    console.log("Warning: Could not find activities for bookings");
+  }
 
   console.log("Seed complete.");
 }
