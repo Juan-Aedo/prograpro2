@@ -1,13 +1,24 @@
 "use client";
 
-import { Search, Sun, CloudSun, Cloud, MapPin } from "lucide-react";
+import { Search, Sun, CloudSun, Cloud, CloudRain, CloudLightning, Snowflake, CloudFog, MapPin } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { WeatherData } from "@/lib/types";
+import { useWeather } from "@/lib/hooks/useWeather";
 
 interface HomeHeroProps {
   clima: WeatherData;
 }
+
+const iconosClima: Record<string, React.ElementType> = {
+  "clear":         Sun,
+  "partly-cloudy": CloudSun,
+  "cloudy":        Cloud,
+  "rain":          CloudRain,
+  "storm":         CloudLightning,
+  "snow":          Snowflake,
+  "fog":           CloudFog,
+};
 
 const quickTags = [
   { label: "Hoy",         href: "/explore?q=hoy" },
@@ -16,9 +27,12 @@ const quickTags = [
   { label: "Al aire libre", href: "/explore?categoria=aire-libre" },
 ];
 
-export function HomeHero({ clima }: HomeHeroProps) {
+export function HomeHero({ clima: climaInicial }: HomeHeroProps) {
   const [busqueda, setBusqueda] = useState("");
   const router = useRouter();
+  const { clima: climaLive } = useWeather(climaInicial);
+  const clima = climaLive ?? climaInicial;
+  const IconoClima = iconosClima[clima.icono] ?? Sun;
 
   const handleBusqueda = (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +53,7 @@ export function HomeHero({ clima }: HomeHeroProps) {
 
         {/* Clima pill — arriba del título */}
         <div className="inline-flex items-center gap-2 rounded-full border border-ink-900/12 bg-white/80 backdrop-blur-sm px-4 py-2 text-sm text-ink-600 mb-8 animate-fade-in">
-          <Sun className="h-4 w-4 text-amber-500" />
+          <IconoClima className="h-4 w-4 text-amber-500" />
           <span className="font-medium text-ink-800">{clima.ciudad}</span>
           <span className="text-ink-300">·</span>
           <span>{clima.temperatura}°C · {clima.descripcion}</span>

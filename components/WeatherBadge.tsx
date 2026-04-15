@@ -70,7 +70,34 @@ export function WeatherBadge({ clima, compacto = false }: WeatherBadgeProps) {
           <Sun className="h-3.5 w-3.5 text-amber-400" />
           ST {clima.sensacionTermica}°
         </div>
+        {typeof clima.tempMin === "number" && typeof clima.tempMax === "number" && (
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-cream-100 px-3 py-1.5 text-xs text-ink-600">
+            {clima.tempMin}° / {clima.tempMax}°
+          </div>
+        )}
       </div>
+
+      {/* Pronóstico del día */}
+      {clima.pronostico && clima.pronostico.length > 0 && (
+        <div className="mt-5 border-t border-ink-900/10 pt-4">
+          <p className="eyebrow mb-3">Pronóstico de hoy</p>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {clima.pronostico.map((item, i) => {
+              const Icono = iconosClima[item.icono] ?? Sun;
+              return (
+                <div
+                  key={`${item.hora}-${i}`}
+                  className="flex min-w-[72px] flex-col items-center gap-1 rounded-xl border border-ink-200 bg-cream-100 px-3 py-2"
+                >
+                  <span className="text-[11px] font-medium text-ink-500">{item.hora}</span>
+                  <Icono className="h-5 w-5 text-amber-500" />
+                  <span className="text-sm font-bold text-ink-900">{item.temperatura}°</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

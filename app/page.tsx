@@ -4,7 +4,7 @@ import { serializeActivity } from "@/lib/serializers";
 import { obtenerClima } from "@/lib/weather";
 import { categoriaLabels } from "@/lib/categorias";
 import { ActivityCard } from "@/components/ActivityCard";
-import { WeatherBadge } from "@/components/WeatherBadge";
+import { WeatherLive } from "@/components/WeatherLive";
 import { HomeHero } from "@/components/HomeHero";
 import { CategoryScroller } from "@/components/CategoryScroller";
 import { TrendingUp, Sparkles, ArrowRight } from "lucide-react";
@@ -97,7 +97,7 @@ export default async function HomePage() {
         {/* ——— Clima + CTA ——— */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-5 pb-4">
           <Suspense fallback={<div className="rounded-2xl border border-ink-200 h-52 animate-pulse bg-cream-200" />}>
-            <WeatherBadge clima={clima} />
+            <WeatherLive climaInicial={clima} />
           </Suspense>
 
           {/* CTA card — teal sólido con borde negro */}

@@ -41,6 +41,13 @@ export interface Activity {
   enTendencia: boolean;
 }
 
+export interface WeatherForecastItem {
+  hora: string;
+  temperatura: number;
+  icono: string;
+  descripcion: string;
+}
+
 export interface WeatherData {
   temperatura: number;
   sensacionTermica: number;
@@ -49,6 +56,10 @@ export interface WeatherData {
   humedad: number;
   viento: number;
   ciudad: string;
+  tempMin?: number;
+  tempMax?: number;
+  pronostico?: WeatherForecastItem[];
+  actualizadoEn?: string;
 }
 
 export interface Booking {
