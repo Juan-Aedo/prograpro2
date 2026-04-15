@@ -2,9 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { WeatherData } from "@/lib/types";
+import { useLocationStore } from "@/store/locationStore";
 
-const SANTIAGO_LAT = -33.4489;
-const SANTIAGO_LNG = -70.6693;
 const POLL_INTERVAL_MS = 60_000;
 
 interface UseWeatherReturn {
@@ -28,11 +27,12 @@ function climaCambio(a: WeatherData | null, b: WeatherData): boolean {
 }
 
 export function useWeather(climaInicial: WeatherData | null = null): UseWeatherReturn {
+  const lat = useLocationStore((s) => s.lat);
+  const lng = useLocationStore((s) => s.lng);
+
   const [clima, setClima] = useState<WeatherData | null>(climaInicial);
   const [loading, setLoading] = useState(climaInicial === null);
   const [error, setError] = useState<string | null>(null);
-  const [lat, setLat] = useState(SANTIAGO_LAT);
-  const [lng, setLng] = useState(SANTIAGO_LNG);
   const climaRef = useRef<WeatherData | null>(climaInicial);
 
   const fetchClima = useCallback(async (latActual: number, lngActual: number) => {
@@ -56,39 +56,12 @@ export function useWeather(climaInicial: WeatherData | null = null): UseWeatherR
   }, []);
 
   useEffect(() => {
-    let currentLat = SANTIAGO_LAT;
-    let currentLng = SANTIAGO_LNG;
-    let intervalId: ReturnType<typeof setInterval> | null = null;
-
-    const iniciarPolling = () => {
-      fetchClima(currentLat, currentLng);
-      intervalId = setInterval(() => {
-        fetchClima(currentLat, currentLng);
-      }, POLL_INTERVAL_MS);
-    };
-
-    if (typeof window !== "undefined" && "geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          currentLat = pos.coords.latitude;
-          currentLng = pos.coords.longitude;
-          setLat(currentLat);
-          setLng(currentLng);
-          iniciarPolling();
-        },
-        () => {
-          iniciarPolling();
-        },
-        { timeout: 5000 }
-      );
-    } else {
-      iniciarPolling();
-    }
-
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [fetchClima]);
+    climaRef.current = null;
+    setLoading(true);
+    fetchClima(lat, lng);
+    const id = setInterval(() => fetchClima(lat, lng), POLL_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [lat, lng, fetchClima]);
 
   return {
     clima,

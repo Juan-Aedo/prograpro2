@@ -6,6 +6,7 @@ import { categoriaLabels } from "@/lib/categorias";
 import { ActivityCard } from "@/components/ActivityCard";
 import { WeatherLive } from "@/components/WeatherLive";
 import { HomeHero } from "@/components/HomeHero";
+import { PanoramasEnZona } from "@/components/PanoramasEnZona";
 import { CategoryScroller } from "@/components/CategoryScroller";
 import { TrendingUp, Sparkles, ArrowRight } from "lucide-react";
 import Link from "next/link";
@@ -43,6 +44,11 @@ export default async function HomePage() {
           </div>
           <CategoryScroller categorias={categorias} />
         </section>
+
+        <hr className="border-none h-px bg-gradient-to-r from-transparent via-ink-200 to-transparent" />
+
+        {/* ——— Panoramas en tu zona ——— */}
+        <PanoramasEnZona />
 
         <hr className="border-none h-px bg-gradient-to-r from-transparent via-ink-200 to-transparent" />
 

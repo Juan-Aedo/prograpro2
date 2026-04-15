@@ -3,6 +3,8 @@ import { Playfair_Display, Inter } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/Navbar";
 import { AuthProvider } from "@/components/AuthProvider";
+import { LocationProvider } from "@/components/LocationProvider";
+import { LocationBanner } from "@/components/LocationBanner";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -34,8 +36,11 @@ export default function RootLayout({
     <html lang="es" className={`${playfair.variable} ${inter.variable}`}>
       <body>
         <AuthProvider>
-          <Navbar />
-          <main className="min-h-[calc(100vh-4rem)]">{children}</main>
+          <LocationProvider>
+            <Navbar />
+            <LocationBanner />
+            <main className="min-h-[calc(100vh-4rem)]">{children}</main>
+          </LocationProvider>
         </AuthProvider>
       </body>
     </html>

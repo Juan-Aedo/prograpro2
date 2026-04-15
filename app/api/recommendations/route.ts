@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { actividades } from "@/lib/mock-data";
+import { prisma } from "@/lib/db";
+import { serializeActivity } from "@/lib/serializers";
 import { obtenerClima } from "@/lib/weather";
 import type {
   Activity,
@@ -164,8 +165,9 @@ export async function POST(request: NextRequest) {
     const clima = await obtenerClima(lat, lng);
     const radioKm = radio / 1000;
 
-    // 2. Filtrar por presupuesto
-    let candidatos = [...actividades];
+    // 2. Cargar actividades desde DB y filtrar por presupuesto
+    const actividadesRaw = await prisma.activity.findMany();
+    let candidatos: Activity[] = actividadesRaw.map(serializeActivity);
     if (presupuestoMax !== undefined) {
       candidatos = candidatos.filter(
         (a) => a.precio.valor === 0 || a.precio.valor <= presupuestoMax
