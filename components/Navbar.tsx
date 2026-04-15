@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -12,6 +12,7 @@ import {
   Menu,
   X,
   User,
+  Settings,
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -26,19 +27,34 @@ const enlaces = [
 
 export function Navbar() {
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const [dropdownAbierto, setDropdownAbierto] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
-  const { estaAutenticado, usuario, cargarUsuario, logout } = useUserStore();
-
-  useEffect(() => {
-    cargarUsuario();
-  }, [cargarUsuario]);
+  const { estaAutenticado, usuario, logout } = useUserStore();
 
   const handleLogout = async () => {
+    setDropdownAbierto(false);
     await logout();
-    router.push("/");
+    router.push("/login");
     router.refresh();
   };
+
+  // Cerrar dropdown al hacer clic fuera
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownAbierto(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // Cerrar dropdown al cambiar de ruta
+  useEffect(() => {
+    setDropdownAbierto(false);
+  }, [pathname]);
 
   return (
     <>
@@ -80,20 +96,43 @@ export function Navbar() {
           {/* Acciones */}
           <div className="hidden md:flex items-center gap-3">
             {estaAutenticado && usuario ? (
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2 rounded-full border border-ink-900/15 bg-cream-200 px-3 py-1.5">
+              <div ref={dropdownRef} className="relative">
+                {/* Botón avatar */}
+                <button
+                  onClick={() => setDropdownAbierto(!dropdownAbierto)}
+                  className="flex items-center gap-2 rounded-full border border-ink-900/15 bg-cream-200 px-3 py-1.5 cursor-pointer transition-all duration-150 hover:border-teal-300 hover:shadow-offset-sm hover:-translate-x-0.5 hover:-translate-y-0.5"
+                >
                   <div className="flex h-6 w-6 items-center justify-center rounded-full bg-teal-400 text-xs font-bold text-ink-900">
                     {usuario.avatar}
                   </div>
                   <span className="text-sm font-medium text-ink-800">{usuario.nombre}</span>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  aria-label="Cerrar sesión"
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-ink-900/15 text-ink-600 transition-all duration-150 hover:bg-cream-200 cursor-pointer"
-                >
-                  <LogOut className="h-4 w-4" />
                 </button>
+
+                {/* Dropdown */}
+                {dropdownAbierto && (
+                  <div className="absolute right-0 top-full mt-2 w-48 rounded-2xl border border-ink-900/10 bg-cream-100 shadow-lg overflow-hidden animate-fade-in">
+                    <div className="px-4 py-3 border-b border-ink-900/8">
+                      <p className="text-xs font-medium text-ink-900 truncate">{usuario.nombre}</p>
+                      <p className="text-xs text-ink-400 truncate">{usuario.email}</p>
+                    </div>
+                    <div className="p-1.5 space-y-0.5">
+                      <Link
+                        href="/profile"
+                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-ink-700 hover:bg-cream-200 transition-colors cursor-pointer"
+                      >
+                        <Settings className="h-4 w-4 text-ink-400" />
+                        Mi perfil
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Cerrar sesión
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <Link href="/login" className="btn-primary text-sm py-2 px-5">
@@ -115,7 +154,7 @@ export function Navbar() {
         {/* Menú móvil desplegable */}
         <div className={cn(
           "md:hidden overflow-hidden transition-all duration-300 ease-out",
-          menuAbierto ? "max-h-80 opacity-100" : "max-h-0 opacity-0"
+          menuAbierto ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
         )}>
           <div className="border-t border-ink-900/8 bg-cream-100 px-4 pb-5 pt-3 space-y-1">
             {enlaces.map(({ href, label, icono: Icono }) => {
@@ -137,7 +176,31 @@ export function Navbar() {
                 </Link>
               );
             })}
-            {!estaAutenticado && (
+
+            {estaAutenticado && usuario ? (
+              <>
+                <Link
+                  href="/profile"
+                  onClick={() => setMenuAbierto(false)}
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-150 cursor-pointer",
+                    pathname === "/profile"
+                      ? "bg-teal-100 text-teal-700 border border-teal-200"
+                      : "text-ink-600 hover:bg-cream-200"
+                  )}
+                >
+                  <Settings className="h-4 w-4" />
+                  Mi perfil
+                </Link>
+                <button
+                  onClick={() => { setMenuAbierto(false); handleLogout(); }}
+                  className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-all duration-150 cursor-pointer"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Cerrar sesión
+                </button>
+              </>
+            ) : (
               <Link
                 href="/login"
                 onClick={() => setMenuAbierto(false)}
