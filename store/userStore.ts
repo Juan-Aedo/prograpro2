@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { createClient } from "@/lib/supabase";
+import { useLocationStore } from "@/store/locationStore";
 import type { User, ActivityCategory } from "@/lib/types";
 import type { Session } from "@supabase/supabase-js";
 
@@ -20,10 +21,8 @@ interface UserState {
   inicializado: boolean;
   setUsuario: (session: Session | null) => Promise<void>;
   logout: () => Promise<void>;
-  actualizarPreferencias: (preferencias: ActivityCategory[]) => Promise<void>;
+  actualizarPreferencias: (preferencias: ActivityCategory[]) => void;
   actualizarPerfil: (datos: ProfileUpdate) => Promise<void>;
-  actualizarTelefono: (telefono: string) => Promise<void>;
-  cambiarPassword: (actual: string, nueva: string) => Promise<void>;
 }
 
 function sessionToUsuario(session: Session): User {
@@ -38,11 +37,10 @@ function sessionToUsuario(session: Session): User {
     email: session.user.email ?? "",
     avatar: (meta.full_name?.[0] ?? meta.nombre?.[0] ?? "U").toUpperCase(),
     preferencias: meta.preferencias ?? [],
-    telefono: meta.telefono ?? undefined,
   };
 }
 
-export const useUserStore = create<UserState>((set, get) => ({
+export const useUserStore = create<UserState>((set) => ({
   usuario: null,
   estaAutenticado: false,
   inicializado: false,
@@ -56,6 +54,7 @@ export const useUserStore = create<UserState>((set, get) => ({
     const base = sessionToUsuario(session);
     set({ usuario: base, estaAutenticado: true, inicializado: true });
 
+    // Cargar datos extendidos desde la tabla profiles
     const supabase = createClient();
     if (!supabase) return;
 
@@ -79,6 +78,11 @@ export const useUserStore = create<UserState>((set, get) => ({
             }
           : null,
       }));
+
+      // Hidratar el store global de ubicación con la ciudad guardada del usuario
+      if (profile.ciudad && profile.lat != null && profile.lng != null) {
+        useLocationStore.getState().setManual(profile.lat, profile.lng, profile.ciudad);
+      }
     }
   },
 
@@ -86,16 +90,15 @@ export const useUserStore = create<UserState>((set, get) => ({
     const supabase = createClient();
     if (supabase) await supabase.auth.signOut();
     set({ usuario: null, estaAutenticado: false, inicializado: true });
+    useLocationStore.getState().clearManual();
   },
 
-  actualizarPreferencias: async (preferencias: ActivityCategory[]) => {
+  actualizarPreferencias: (preferencias: ActivityCategory[]) => {
     set((state) => ({
       usuario: state.usuario ? { ...state.usuario, preferencias } : null,
     }));
     const supabase = createClient();
-    if (!supabase) return;
-    const { error } = await supabase.auth.updateUser({ data: { preferencias } });
-    if (error) throw new Error(error.message);
+    if (supabase) supabase.auth.updateUser({ data: { preferencias } });
   },
 
   actualizarPerfil: async (datos: ProfileUpdate) => {
@@ -118,51 +121,19 @@ export const useUserStore = create<UserState>((set, get) => ({
 
     if (error) throw new Error(error.message);
 
+    // Actualizar nombre también en auth metadata si se cambió
     if (datos.nombre) {
       await supabase.auth.updateUser({ data: { nombre: datos.nombre } });
     }
 
     set((state) => ({
-      usuario: state.usuario ? { ...state.usuario, ...datos } : null,
+      usuario: state.usuario
+        ? {
+            ...state.usuario,
+            ...datos,
+            ...(datos.nombre && { avatar: datos.nombre[0].toUpperCase() }),
+          }
+        : null,
     }));
-  },
-
-  actualizarTelefono: async (telefono: string) => {
-    const supabase = createClient();
-    if (!supabase) return;
-    const { error } = await supabase.auth.updateUser({ data: { telefono } });
-    if (error) throw new Error(error.message);
-    set((state) => ({
-      usuario: state.usuario ? { ...state.usuario, telefono } : null,
-    }));
-  },
-
-  cambiarPassword: async (actual: string, nueva: string) => {
-    const supabase = createClient();
-    if (!supabase) throw new Error("Supabase no configurado");
-
-    const usuario = get().usuario;
-    if (!usuario?.email) throw new Error("No hay email del usuario");
-
-    // Validar fortaleza
-    if (nueva.length < 8) {
-      throw new Error("La contraseña debe tener al menos 8 caracteres");
-    }
-    if (!/[A-Za-z]/.test(nueva) || !/\d/.test(nueva)) {
-      throw new Error("La contraseña debe contener letras y números");
-    }
-    if (nueva === actual) {
-      throw new Error("La nueva contraseña debe ser diferente a la actual");
-    }
-
-    // Verificar contraseña actual re-autenticando
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email: usuario.email,
-      password: actual,
-    });
-    if (authError) throw new Error("La contraseña actual es incorrecta");
-
-    const { error } = await supabase.auth.updateUser({ password: nueva });
-    if (error) throw new Error(error.message);
   },
 }));

@@ -84,16 +84,6 @@ export interface User {
   ciudad?: string;
   lat?: number;
   lng?: number;
-  telefono?: string;
-}
-
-export type LocationMode = "gps" | "manual" | "default";
-
-export interface UbicacionActiva {
-  lat: number;
-  lng: number;
-  ciudad: string;
-  modo: LocationMode;
 }
 
 export interface FilterState {
