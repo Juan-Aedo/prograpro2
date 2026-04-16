@@ -13,6 +13,10 @@ import {
   Settings,
   LogOut,
   ArrowLeft,
+  Shield,
+  Lock,
+  Key,
+  Chrome,
 } from "lucide-react";
 import Link from "next/link";
 import { useUserStore } from "@/store/userStore";
@@ -22,7 +26,14 @@ import { useGeoLocation, geocodificarTexto } from "@/lib/hooks/useGeoLocation";
 import type { ActivityCategory } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type Seccion = "personal" | "preferencias";
+type Seccion = "personal" | "preferencias" | "seguridad";
+
+interface SecurityInfo {
+  tieneHashBcrypt: boolean;
+  hashParcial: string | null;
+  proveedor: string;
+  email: string;
+}
 
 export default function CuentaPage() {
   const router = useRouter();
@@ -57,6 +68,10 @@ export default function CuentaPage() {
   const [okPrefs, setOkPrefs] = useState(false);
   const [error, setError] = useState("");
 
+  // Seguridad
+  const [securityInfo, setSecurityInfo] = useState<SecurityInfo | null>(null);
+  const [cargandoSecurity, setCargandoSecurity] = useState(false);
+
   // Redirigir si no está autenticado
   useEffect(() => {
     if (inicializado && !estaAutenticado) {
@@ -76,6 +91,17 @@ export default function CuentaPage() {
       setPreferencias(usuario.preferencias ?? []);
     }
   }, [usuario]);
+
+  useEffect(() => {
+    if (seccion === "seguridad" && !securityInfo && !cargandoSecurity) {
+      setCargandoSecurity(true);
+      fetch("/api/auth/security-info")
+        .then((r) => r.json())
+        .then((data) => setSecurityInfo(data))
+        .catch(() => {})
+        .finally(() => setCargandoSecurity(false));
+    }
+  }, [seccion, securityInfo, cargandoSecurity]);
 
   const detectarUbicacion = async () => {
     setError("");
@@ -236,6 +262,18 @@ export default function CuentaPage() {
               >
                 <Heart className="h-4 w-4" />
                 Mis intereses
+              </button>
+              <button
+                onClick={() => setSeccion("seguridad")}
+                className={cn(
+                  "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors cursor-pointer",
+                  seccion === "seguridad"
+                    ? "bg-teal-100 text-teal-700 border border-teal-200"
+                    : "text-ink-600 hover:bg-cream-200"
+                )}
+              >
+                <Shield className="h-4 w-4" />
+                Seguridad
               </button>
               <button
                 onClick={handleLogout}
@@ -407,6 +445,116 @@ export default function CuentaPage() {
                   )}
                 </button>
               </form>
+            )}
+
+            {seccion === "seguridad" && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="font-display text-lg font-bold text-ink-900">
+                    Seguridad de tu cuenta
+                  </h2>
+                  <p className="text-xs text-ink-500">
+                    Elementos criptográficos que protegen tu información
+                  </p>
+                </div>
+
+                {/* Contraseña / bcrypt */}
+                <div className="rounded-2xl border border-ink-200 bg-cream-100 p-5 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-100 border border-teal-200">
+                      <Lock className="h-4 w-4 text-teal-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-ink-900">Contraseña</p>
+                      <p className="text-xs text-ink-500">Hash con bcrypt · cost factor 10</p>
+                    </div>
+                  </div>
+
+                  {cargandoSecurity && (
+                    <div className="flex items-center gap-2 text-xs text-ink-400">
+                      <Loader2 className="h-3 w-3 animate-spin" /> Cargando...
+                    </div>
+                  )}
+
+                  {!cargandoSecurity && securityInfo && (
+                    <>
+                      {securityInfo.tieneHashBcrypt ? (
+                        <div className="space-y-2">
+                          <div className="rounded-lg border border-teal-200 bg-teal-50 px-3 py-2">
+                            <p className="text-[10px] font-medium text-teal-600 mb-0.5">Hash almacenado</p>
+                            <p className="font-mono text-xs text-teal-800 break-all">
+                              {securityInfo.hashParcial}
+                            </p>
+                          </div>
+                          <p className="text-xs text-ink-400">
+                            bcrypt es un algoritmo de hash adaptativo basado en Blowfish. El prefijo{" "}
+                            <span className="font-mono text-ink-600">$2b$10$</span> indica la versión y el
+                            cost factor (2¹⁰ = 1024 iteraciones de hash).
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="rounded-lg border border-ink-200 bg-cream-200 px-3 py-2">
+                          <p className="text-xs text-ink-500">
+                            {securityInfo.proveedor === "google"
+                              ? "Cuenta Google — sin contraseña local. Tu identidad es verificada por OAuth 2.0."
+                              : "Sin contraseña local. Acceso via código OTP de un solo uso."}
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* JWT */}
+                <div className="rounded-2xl border border-ink-200 bg-cream-100 p-5 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-100 border border-amber-200">
+                      <Key className="h-4 w-4 text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-ink-900">Sesiones</p>
+                      <p className="text-xs text-ink-500">JWT firmado con HS256</p>
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                    <p className="font-mono text-[10px] text-amber-700">
+                      header.payload.signature — HMAC-SHA256
+                    </p>
+                  </div>
+                  <p className="text-xs text-ink-400">
+                    Los tokens JWT se firman con una clave secreta de 32+ caracteres usando el algoritmo HS256
+                    (HMAC-SHA256). Validez de 7 días. Se almacenan en cookies HTTP-only (no accesibles desde JavaScript).
+                  </p>
+                </div>
+
+                {/* OAuth / OTP */}
+                <div className="rounded-2xl border border-ink-200 bg-cream-100 p-5 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-100 border border-blue-200">
+                      <Chrome className="h-4 w-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-ink-900">Autenticación externa</p>
+                      <p className="text-xs text-ink-500">OAuth 2.0 · OTP · TLS</p>
+                    </div>
+                  </div>
+                  <ul className="space-y-2">
+                    {[
+                      { label: "Google SSO", desc: "OAuth 2.0 + PKCE via Supabase — el proveedor verifica la identidad" },
+                      { label: "OTP por email", desc: "Código HMAC de un solo uso — expira en 60 minutos" },
+                      { label: "Transporte", desc: "TLS 1.3 — todas las comunicaciones van cifradas en tránsito" },
+                    ].map(({ label, desc }) => (
+                      <li key={label} className="flex items-start gap-2">
+                        <Check className="h-3.5 w-3.5 text-teal-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <span className="text-xs font-medium text-ink-700">{label}: </span>
+                          <span className="text-xs text-ink-500">{desc}</span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
             )}
 
             {seccion === "preferencias" && (

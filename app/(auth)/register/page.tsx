@@ -132,7 +132,20 @@ export default function RegisterPage() {
         );
       }
 
-      // 4. Redirigir si hay sesión (confirmación desactivada)
+      // 4. Almacenar hash bcrypt en Prisma (elemento criptográfico: bcrypt cost 10)
+      //    Esto guarda la contraseña hasheada localmente para demostrar el uso de bcrypt.
+      //    Si la BD no está disponible, falla silenciosamente sin interrumpir el registro.
+      try {
+        await fetch("/api/auth/store-bcrypt", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password, nombre }),
+        });
+      } catch {
+        // No bloquear el registro si la BD local no está disponible
+      }
+
+      // 5. Redirigir si hay sesión (confirmación desactivada)
       //    o mostrar pantalla de "revisa tu email" si no
       if (data.session) {
         router.push("/");
