@@ -84,6 +84,22 @@ export const useUserStore = create<UserState>((set) => ({
         useLocationStore.getState().setManual(profile.lat, profile.lng, profile.ciudad);
       }
     }
+
+    // Migrar datos desde Supabase a Postgres local al iniciar sesión
+    // (cubre flujos OAuth/Google/OTP que no pasan por el registro con contraseña)
+    fetch("/api/users/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nombre: profile?.nombre ?? base.nombre,
+        preferencias: base.preferencias ?? [],
+        edad: profile?.edad ?? null,
+        sexo: profile?.sexo ?? null,
+        ciudad: profile?.ciudad ?? null,
+        lat: profile?.lat ?? null,
+        lng: profile?.lng ?? null,
+      }),
+    }).catch(() => {});
   },
 
   logout: async () => {
@@ -99,6 +115,12 @@ export const useUserStore = create<UserState>((set) => ({
     }));
     const supabase = createClient();
     if (supabase) supabase.auth.updateUser({ data: { preferencias } });
+    // Migrar a Postgres local
+    fetch("/api/users/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ preferencias }),
+    }).catch(() => {});
   },
 
   actualizarPerfil: async (datos: ProfileUpdate) => {
@@ -124,6 +146,17 @@ export const useUserStore = create<UserState>((set) => ({
     // Actualizar nombre también en auth metadata si se cambió
     if (datos.nombre) {
       await supabase.auth.updateUser({ data: { nombre: datos.nombre } });
+    }
+
+    // Migrar datos a Postgres local
+    try {
+      await fetch("/api/users/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(datos),
+      });
+    } catch {
+      // No bloquear si BD local no está disponible
     }
 
     set((state) => ({

@@ -132,14 +132,25 @@ export default function RegisterPage() {
         );
       }
 
-      // 4. Almacenar hash bcrypt en Prisma (elemento criptográfico: bcrypt cost 10)
-      //    Esto guarda la contraseña hasheada localmente para demostrar el uso de bcrypt.
-      //    Si la BD no está disponible, falla silenciosamente sin interrumpir el registro.
+      // 4. Migrar datos del usuario desde Supabase a PostgreSQL local
+      //    Envía nombre, email, contacto y preferencias al endpoint local
+      //    que también guarda la contraseña con bcrypt (cost 10)
       try {
         await fetch("/api/auth/store-bcrypt", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password, nombre }),
+          body: JSON.stringify({
+            email,
+            password,
+            nombre,
+            supabaseId: userId ?? null,
+            preferencias,
+            edad: edad ? parseInt(edad, 10) : null,
+            sexo: sexo || null,
+            ciudad: ciudad || null,
+            lat: lat ?? null,
+            lng: lng ?? null,
+          }),
         });
       } catch {
         // No bloquear el registro si la BD local no está disponible
