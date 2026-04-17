@@ -7,6 +7,7 @@ import { ActivityCard } from "@/components/ActivityCard";
 import { WeatherLive } from "@/components/WeatherLive";
 import { HomeHero } from "@/components/HomeHero";
 import { PanoramasEnZona } from "@/components/PanoramasEnZona";
+import { RecomendadasPorClima } from "@/components/RecomendadasPorClima";
 import { CategoryScroller } from "@/components/CategoryScroller";
 import { TrendingUp, Sparkles, ArrowRight } from "lucide-react";
 import Link from "next/link";
@@ -14,13 +15,11 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [destacadasRows, enTendenciaRows, clima] = await Promise.all([
-    prisma.activity.findMany({ where: { destacada: true }, orderBy: { createdAt: "asc" } }),
+  const [enTendenciaRows, clima] = await Promise.all([
     prisma.activity.findMany({ where: { enTendencia: true }, orderBy: { createdAt: "asc" } }),
-    obtenerClima(),
+    obtenerClima(), // Solo para el hero inicial (se reemplaza client-side por ubicación del usuario)
   ]);
 
-  const destacadas = destacadasRows.map(serializeActivity);
   const enTendencia = enTendenciaRows.map(serializeActivity);
   const categorias = Object.entries(categoriaLabels);
 
@@ -76,27 +75,8 @@ export default async function HomePage() {
 
         <hr className="border-none h-px bg-gradient-to-r from-transparent via-ink-200 to-transparent" />
 
-        {/* ——— Recomendados ——— */}
-        <section>
-          <div className="flex items-end justify-between mb-8">
-            <div>
-              <p className="eyebrow mb-1 flex items-center gap-1.5">
-                <Sparkles className="h-3.5 w-3.5" />
-                Personalizadas
-              </p>
-              <h2 className="section-title">Recomendadas para ti</h2>
-              <p className="section-subtitle mt-1">Basado en tus preferencias y el clima</p>
-            </div>
-            <Link href="/explore" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-teal-600 hover:text-teal-700 transition-colors cursor-pointer">
-              Ver todas <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 animate-stagger">
-            {destacadas.map((actividad, i) => (
-              <ActivityCard key={actividad.id} actividad={actividad} indice={i} />
-            ))}
-          </div>
-        </section>
+        {/* ——— Recomendados por clima (cliente — usa ubicación real del usuario) ——— */}
+        <RecomendadasPorClima />
 
         <hr className="border-none h-px bg-gradient-to-r from-transparent via-ink-200 to-transparent" />
 

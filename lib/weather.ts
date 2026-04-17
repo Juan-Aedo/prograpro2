@@ -1,4 +1,5 @@
-import type { WeatherData, WeatherForecastItem } from "./types";
+import type { WeatherData, WeatherDayForecast, WeatherForecastItem } from "./types";
+import { rankCategoriasPorClima } from "./baseConocimiento";
 import { SANTIAGO_CIUDAD, SANTIAGO_LAT, SANTIAGO_LNG } from "./constants";
 
 const MOCK: WeatherData = {
@@ -34,8 +35,8 @@ export function urlOpenMeteo(lat: number, lng: number): string {
     `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}` +
     `&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code` +
     `&hourly=temperature_2m,weather_code` +
-    `&daily=temperature_2m_max,temperature_2m_min` +
-    `&timezone=auto&forecast_days=2&wind_speed_unit=kmh`
+    `&daily=temperature_2m_max,temperature_2m_min,weather_code` +
+    `&timezone=auto&forecast_days=6&wind_speed_unit=kmh`
   );
 }
 
@@ -54,8 +55,10 @@ export interface OpenMeteoResponse {
     weather_code?: number[];
   };
   daily?: {
+    time?: string[];
     temperature_2m_max?: number[];
     temperature_2m_min?: number[];
+    weather_code?: number[];
   };
 }
 
@@ -108,6 +111,35 @@ export function construirPronostico(
   return pronostico;
 }
 
+const DIAS_COMPLETOS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+const DIAS_CORTOS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+
+export function construirPronosticoDiario(data: OpenMeteoResponse): WeatherDayForecast[] {
+  const fechas = data.daily?.time ?? [];
+  const maxTemps = data.daily?.temperature_2m_max ?? [];
+  const minTemps = data.daily?.temperature_2m_min ?? [];
+  const codes = data.daily?.weather_code ?? [];
+
+  const resultado: WeatherDayForecast[] = [];
+  for (let i = 0; i < fechas.length && resultado.length < 5; i++) {
+    const fecha = fechas[i];
+    if (!fecha) continue;
+    const d = new Date(fecha + "T12:00:00");
+    const dayOfWeek = d.getDay();
+    const { icono, descripcion } = mapWeatherCode(codes[i] ?? 0);
+    resultado.push({
+      fecha,
+      diaNombre: DIAS_COMPLETOS[dayOfWeek] ?? "",
+      diaCorto: DIAS_CORTOS[dayOfWeek] ?? "",
+      tempMax: Math.round(maxTemps[i] ?? 0),
+      tempMin: Math.round(minTemps[i] ?? 0),
+      icono,
+      descripcion,
+    });
+  }
+  return resultado;
+}
+
 export async function obtenerClima(lat?: number, lng?: number): Promise<WeatherData> {
   const latFinal = lat ?? SANTIAGO_LAT;
   const lngFinal = lng ?? SANTIAGO_LNG;
@@ -141,14 +173,13 @@ export async function obtenerClima(lat?: number, lng?: number): Promise<WeatherD
   }
 }
 
+/**
+ * Categorías sugeridas según la base de conocimiento de las 4 tablas.
+ * Usa rankCategoriasPorClima() para evaluar temperatura, condición climática
+ * y viento contra las reglas de las tablas outdoor e indoor.
+ */
 export function sugerirPorClima(clima: WeatherData): string[] {
-  if (clima.temperatura > 25 && clima.descripcion.includes("despejado")) {
-    return ["parques", "aire-libre", "deportes"];
-  }
-  if (clima.temperatura < 10 || clima.descripcion.includes("lluvia")) {
-    return ["cine", "teatro", "museos", "gastronomia", "talleres"];
-  }
-  return ["parques", "musica", "gastronomia", "aire-libre"];
+  return rankCategoriasPorClima(clima.temperatura, clima.icono, clima.viento);
 }
 
 export { MOCK as MOCK_WEATHER };

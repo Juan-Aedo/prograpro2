@@ -50,6 +50,16 @@ export interface WeatherForecastItem {
   descripcion: string;
 }
 
+export interface WeatherDayForecast {
+  fecha: string;       // "2026-04-17"
+  diaNombre: string;   // "Viernes"
+  diaCorto: string;    // "Vie"
+  tempMax: number;
+  tempMin: number;
+  icono: string;
+  descripcion: string;
+}
+
 export interface WeatherData {
   temperatura: number;
   sensacionTermica: number;
@@ -61,6 +71,7 @@ export interface WeatherData {
   tempMin?: number;
   tempMax?: number;
   pronostico?: WeatherForecastItem[];
+  pronosticoDiario?: WeatherDayForecast[];
   actualizadoEn?: string;
 }
 

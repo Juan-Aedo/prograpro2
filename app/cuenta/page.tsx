@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   User as UserIcon,
@@ -23,8 +23,18 @@ import { useUserStore } from "@/store/userStore";
 import { useLocationStore } from "@/store/locationStore";
 import { categoriaLabels } from "@/lib/categorias";
 import { useGeoLocation, geocodificarTexto } from "@/lib/hooks/useGeoLocation";
+import { CAPITALES_REGIONALES, type CapitalRegional } from "@/lib/capitalesRegionales";
 import type { ActivityCategory } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+// Normaliza texto para búsqueda tolerante a tildes/mayúsculas
+function normalizar(texto: string): string {
+  return texto
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
 
 type Seccion = "personal" | "preferencias" | "seguridad";
 
@@ -56,6 +66,11 @@ export default function CuentaPage() {
   const [ciudad, setCiudad] = useState<string>("");
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
+
+  // Autocomplete de ciudad
+  const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
+  const [indiceActivo, setIndiceActivo] = useState(0);
+  const ciudadWrapperRef = useRef<HTMLDivElement>(null);
 
   // Preferencias
   const [preferencias, setPreferencias] = useState<ActivityCategory[]>([]);
@@ -91,6 +106,38 @@ export default function CuentaPage() {
       setPreferencias(usuario.preferencias ?? []);
     }
   }, [usuario]);
+
+  // Cerrar dropdown al hacer clic fuera
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (
+        ciudadWrapperRef.current &&
+        !ciudadWrapperRef.current.contains(e.target as Node)
+      ) {
+        setMostrarSugerencias(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // Filtrar capitales según lo que escribe el usuario (tolerante a tildes)
+  const sugerenciasCiudad = useMemo<CapitalRegional[]>(() => {
+    const q = normalizar(ciudad);
+    if (!q) return CAPITALES_REGIONALES;
+    return CAPITALES_REGIONALES.filter(
+      (c) =>
+        normalizar(c.nombre).includes(q) || normalizar(c.region).includes(q)
+    );
+  }, [ciudad]);
+
+  const seleccionarCapital = (capital: CapitalRegional) => {
+    setCiudad(capital.nombre);
+    setLat(capital.lat);
+    setLng(capital.lng);
+    setMostrarSugerencias(false);
+    setIndiceActivo(0);
+  };
 
   useEffect(() => {
     if (seccion === "seguridad" && !securityInfo && !cargandoSecurity) {
@@ -385,18 +432,90 @@ export default function CuentaPage() {
                     <MapPin className="h-3.5 w-3.5" /> Ciudad
                   </label>
                   <div className="flex gap-2">
-                    <input
-                      id="ciudad"
-                      type="text"
-                      value={ciudad}
-                      onChange={(e) => {
-                        setCiudad(e.target.value);
-                        setLat(null);
-                        setLng(null);
-                      }}
-                      placeholder="Ej: Santiago de Chile"
-                      className="input-field flex-1"
-                    />
+                    <div ref={ciudadWrapperRef} className="relative flex-1">
+                      <input
+                        id="ciudad"
+                        type="text"
+                        value={ciudad}
+                        onChange={(e) => {
+                          setCiudad(e.target.value);
+                          setLat(null);
+                          setLng(null);
+                          setMostrarSugerencias(true);
+                          setIndiceActivo(0);
+                        }}
+                        onFocus={() => setMostrarSugerencias(true)}
+                        onKeyDown={(e) => {
+                          if (!mostrarSugerencias || sugerenciasCiudad.length === 0) return;
+                          if (e.key === "ArrowDown") {
+                            e.preventDefault();
+                            setIndiceActivo((i) =>
+                              Math.min(i + 1, sugerenciasCiudad.length - 1)
+                            );
+                          } else if (e.key === "ArrowUp") {
+                            e.preventDefault();
+                            setIndiceActivo((i) => Math.max(i - 1, 0));
+                          } else if (e.key === "Enter") {
+                            const capital = sugerenciasCiudad[indiceActivo];
+                            if (capital) {
+                              e.preventDefault();
+                              seleccionarCapital(capital);
+                            }
+                          } else if (e.key === "Escape") {
+                            setMostrarSugerencias(false);
+                          }
+                        }}
+                        placeholder="Ej: Concepción"
+                        role="combobox"
+                        aria-expanded={mostrarSugerencias}
+                        aria-autocomplete="list"
+                        aria-controls="ciudad-listbox"
+                        autoComplete="off"
+                        className="input-field w-full"
+                      />
+                      {mostrarSugerencias && sugerenciasCiudad.length > 0 && (
+                        <ul
+                          id="ciudad-listbox"
+                          role="listbox"
+                          className="absolute z-20 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-ink-200 bg-cream-50 shadow-lg animate-fade-in"
+                        >
+                          {sugerenciasCiudad.map((capital, i) => {
+                            const activo = i === indiceActivo;
+                            return (
+                              <li
+                                key={capital.nombre}
+                                role="option"
+                                aria-selected={activo}
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  seleccionarCapital(capital);
+                                }}
+                                onMouseEnter={() => setIndiceActivo(i)}
+                                className={cn(
+                                  "flex items-center justify-between gap-2 px-3 py-2 cursor-pointer",
+                                  activo
+                                    ? "bg-teal-100 text-teal-800"
+                                    : "text-ink-700 hover:bg-cream-200"
+                                )}
+                              >
+                                <span className="flex items-center gap-2 text-sm">
+                                  <MapPin className="h-3.5 w-3.5 text-ink-400" />
+                                  {capital.nombre}
+                                </span>
+                                <span className="text-xs text-ink-400">
+                                  {capital.region}
+                                </span>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+                      {mostrarSugerencias && sugerenciasCiudad.length === 0 && (
+                        <div className="absolute z-20 mt-1 w-full rounded-xl border border-ink-200 bg-cream-50 px-3 py-2 text-xs text-ink-500 shadow-lg">
+                          Sin coincidencias en las capitales regionales
+                        </div>
+                      )}
+                    </div>
                     <button
                       type="button"
                       onClick={detectarUbicacion}

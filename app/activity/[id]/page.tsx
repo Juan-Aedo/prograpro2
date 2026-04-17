@@ -8,9 +8,15 @@ import {
 import { prisma } from "@/lib/db";
 import { serializeActivity } from "@/lib/serializers";
 import { formatearPrecio, cn } from "@/lib/utils";
+import dynamicImport from "next/dynamic";
 import { CrowdIndicator } from "@/components/CrowdIndicator";
 import { MapWidget } from "@/components/MapWidget";
 import { BookingForm } from "@/components/BookingForm";
+
+const ClimaYDisponibilidad = dynamicImport(
+  () => import("@/components/ClimaYDisponibilidad").then((m) => m.ClimaYDisponibilidad),
+  { ssr: false }
+);
 
 interface Props {
   params: { id: string };
@@ -138,6 +144,7 @@ export default async function ActivityDetailPage({ params }: Props) {
           {/* Sidebar */}
           <div className="space-y-5">
             <BookingForm actividad={actividad} />
+            <ClimaYDisponibilidad actividad={actividad} />
             <MapWidget
               lat={actividad.ubicacion.lat}
               lng={actividad.ubicacion.lng}

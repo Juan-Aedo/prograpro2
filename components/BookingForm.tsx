@@ -21,6 +21,22 @@ export function BookingForm({ actividad }: BookingFormProps) {
   const [reservaExitosa, setReservaExitosa] = useState(false);
   const [error, setError] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [diaNoDisponible, setDiaNoDisponible] = useState("");
+
+  const DIA_NOMBRES = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+
+  const handleFechaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setFecha(val);
+    if (val) {
+      const diaNum = new Date(val + "T12:00:00").getDay();
+      const nombreDia = DIA_NOMBRES[diaNum] ?? "";
+      const esValido = actividad.horario.diasDisponibles.includes(nombreDia);
+      setDiaNoDisponible(esValido ? "" : nombreDia);
+    } else {
+      setDiaNoDisponible("");
+    }
+  };
 
   const total = actividad.precio.esPorPersona
     ? actividad.precio.valor * personas
@@ -85,9 +101,21 @@ export function BookingForm({ actividad }: BookingFormProps) {
             </label>
             <input
               type="date" value={fecha}
-              onChange={(e) => setFecha(e.target.value)}
+              onChange={handleFechaChange}
               required className="input-field cursor-pointer"
             />
+            {diaNoDisponible && (
+              <p className="mt-1.5 text-xs text-red-500">
+                Este lugar no abre los {diaNoDisponible}
+              </p>
+            )}
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {actividad.horario.diasDisponibles.map((dia) => (
+                <span key={dia} className="badge bg-teal-50 border border-teal-200 text-teal-700 text-[10px]">
+                  {dia}
+                </span>
+              ))}
+            </div>
           </div>
 
           <div>
@@ -142,7 +170,7 @@ export function BookingForm({ actividad }: BookingFormProps) {
             </p>
           )}
 
-          <button type="submit" disabled={enviando} className="btn-primary w-full py-3">
+          <button type="submit" disabled={enviando || !!diaNoDisponible} className="btn-primary w-full py-3">
             <Ticket className="h-4 w-4" />
             {enviando ? "Procesando..." : esGratis ? "Confirmar visita" : "Reservar ahora"}
           </button>

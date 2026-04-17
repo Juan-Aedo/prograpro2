@@ -15,27 +15,60 @@ import type {
   EnrichedActivity,
 } from "@/lib/types";
 
-// ── Categorías que requieren buen clima (actividades al aire libre) ──
+// ── Categorías al aire libre (sensibles al clima) ──
 const CATEGORIAS_EXTERIOR: ActivityCategory[] = ["parques", "aire-libre", "deportes"];
 
-// ── Compatibilidad climática por heurística de categoría ──
-function esCompatibleConClima(
+// ── Puntuación climática por intervalos de temperatura (0–25 pts) ──
+// Las actividades de exterior se puntúan según temperatura y condición.
+// Las actividades de interior suben cuando el tiempo es malo.
+function calcularPuntajeClimatico(
   actividad: Activity,
   icono: string,
-  temperatura: number
-): { compatible: boolean; razon: string } {
+  temperatura: number,
+  viento: number
+): { puntos: number; compatible: boolean; razon: string } {
   const esExterior = CATEGORIAS_EXTERIOR.includes(actividad.categoria);
 
-  if (esExterior && (icono === "rain" || icono === "storm")) {
-    return { compatible: false, razon: "Actividad al aire libre no recomendada con lluvia" };
+  if (esExterior) {
+    // Bloqueos duros: lluvia, tormenta, nevada o frío extremo
+    if (icono === "rain" || icono === "storm") {
+      return { puntos: 0, compatible: false, razon: "No recomendada con lluvia o tormenta" };
+    }
+    if (icono === "snow") {
+      return { puntos: 0, compatible: false, razon: "No recomendada con nevada" };
+    }
+    if (temperatura < 4) {
+      return { puntos: 0, compatible: false, razon: "Temperatura demasiado baja para actividad exterior" };
+    }
+
+    // Intervalos de temperatura para actividades al aire libre
+    let puntos: number;
+    if      (temperatura <  5) puntos = 3;   // muy frío
+    else if (temperatura < 10) puntos = 7;   // frío
+    else if (temperatura < 15) puntos = 12;  // fresco
+    else if (temperatura < 20) puntos = 18;  // templado — agradable
+    else if (temperatura < 25) puntos = 23;  // cálido — bueno
+    else if (temperatura < 30) puntos = 25;  // caliente — óptimo exterior
+    else                       puntos = 15;  // >30°C — demasiado calor
+
+    // Penalización por viento fuerte (>40 km/h)
+    if (viento > 40) puntos = Math.max(0, puntos - 8);
+
+    return { puntos, compatible: true, razon: "" };
   }
-  if (esExterior && icono === "snow") {
-    return { compatible: false, razon: "No recomendado con nevada" };
-  }
-  if (esExterior && temperatura < 4) {
-    return { compatible: false, razon: "Temperatura demasiado baja para actividad exterior" };
-  }
-  return { compatible: true, razon: "" };
+
+  // Actividades de interior: suben con mal tiempo o temperaturas extremas
+  let puntos: number;
+  if (icono === "rain" || icono === "storm" || icono === "snow") puntos = 25;
+  else if (temperatura <  5)  puntos = 22;  // muy frío → refugiarse
+  else if (temperatura < 10)  puntos = 20;  // frío
+  else if (temperatura < 15)  puntos = 18;  // fresco
+  else if (temperatura < 20)  puntos = 15;  // templado
+  else if (temperatura < 25)  puntos = 12;  // cálido (el exterior compite)
+  else if (temperatura < 30)  puntos = 10;  // caliente (exterior muy atractivo)
+  else                        puntos = 18;  // >30°C → volver a interior (mucho calor)
+
+  return { puntos, compatible: true, razon: "" };
 }
 
 // ── Motor de scoring (0–100 puntos) ──
@@ -44,6 +77,7 @@ function calcularScore(
   preferencias: ActivityCategory[],
   icono: string,
   temperatura: number,
+  viento: number,
   distanciaKm: number,
   radioKm: number
 ): number {
@@ -54,9 +88,9 @@ function calcularScore(
     score += 40;
   }
 
-  // 2. Compatibilidad climática (25 pts)
-  const { compatible } = esCompatibleConClima(actividad, icono, temperatura);
-  if (compatible) score += 25;
+  // 2. Puntuación climática por intervalos (0–25 pts, ya no binaria)
+  const { puntos } = calcularPuntajeClimatico(actividad, icono, temperatura, viento);
+  score += puntos;
 
   // 3. Rating normalizado: rango 3–5 → 0–15 pts
   score += Math.max(0, ((actividad.rating - 3) / 2) * 15);
@@ -70,12 +104,6 @@ function calcularScore(
 
   // 6. Gratuito (5 pts)
   if (actividad.precio.valor === 0) score += 5;
-
-  // Bonus: categoría interior con mal clima (+8 pts)
-  const esExterior = CATEGORIAS_EXTERIOR.includes(actividad.categoria);
-  if (!esExterior && (icono === "rain" || icono === "storm" || icono === "snow")) {
-    score += 8;
-  }
 
   return Math.min(100, Math.max(0, Math.round(score)));
 }
@@ -104,16 +132,21 @@ function generarRazon(
   partes.push(etiquetas[actividad.categoria] ?? "Gran opción para hoy");
 
   const esExterior = CATEGORIAS_EXTERIOR.includes(actividad.categoria);
-  if (!esExterior && (icono === "rain" || icono === "storm")) {
-    partes.push("perfecta para un día lluvioso");
-  } else if (icono === "clear" && temperatura >= 18) {
-    partes.push("condiciones perfectas hoy");
-  } else if (icono === "partly-cloudy") {
-    partes.push("buen día para salir");
+  if (esExterior) {
+    if      (icono === "clear" && temperatura >= 25) partes.push("condiciones perfectas");
+    else if (temperatura >= 20)  partes.push("buen día para salir");
+    else if (temperatura >= 15)  partes.push("temperatura agradable");
+    else if (temperatura >= 10)  partes.push("fresco pero disfrutable");
+    else                          partes.push("abrígate bien");
+  } else {
+    if (icono === "rain" || icono === "storm") partes.push("perfecta para el mal tiempo");
+    else if (temperatura < 10)  partes.push("ideal para el frío de hoy");
+    else if (temperatura >= 30) partes.push("refréscate en un ambiente cerrado");
+    else if (temperatura < 15)  partes.push("buen plan para un día fresco");
+    else                         partes.push("gran opción para hoy");
   }
 
   partes.push(`a solo ${distanciaTexto}`);
-
   return partes.join(" · ");
 }
 
@@ -164,10 +197,11 @@ export async function POST(request: NextRequest) {
     // 4. Enriquecer: scoring + razón + info de distancia
     const enriquecidas: EnrichedActivity[] = candidatosConDist.map(
       ({ actividad, km }) => {
-        const { compatible, razon } = esCompatibleConClima(
+        const { compatible, razon } = calcularPuntajeClimatico(
           actividad,
           clima.icono,
-          clima.temperatura
+          clima.temperatura,
+          clima.viento
         );
         if (!compatible) filtradasPorClima++;
 
@@ -177,6 +211,7 @@ export async function POST(request: NextRequest) {
           preferencias,
           clima.icono,
           clima.temperatura,
+          clima.viento,
           km,
           radioKm
         );

@@ -5,6 +5,7 @@ import {
   MOCK_WEATHER,
   OpenMeteoResponse,
   construirPronostico,
+  construirPronosticoDiario,
   mapWeatherCode,
   urlOpenMeteo,
 } from "@/lib/weather";
@@ -55,6 +56,7 @@ export async function GET(req: Request) {
 
     const { icono, descripcion } = mapWeatherCode(current.weather_code ?? 0);
     const pronostico = construirPronostico(data, { incluirFuturo: true });
+    const pronosticoDiario = construirPronosticoDiario(data);
 
     const weather: WeatherData = {
       temperatura: Math.round(current.temperature_2m ?? 0),
@@ -67,6 +69,7 @@ export async function GET(req: Request) {
       tempMin: Math.round(data.daily?.temperature_2m_min?.[0] ?? current.temperature_2m ?? 0),
       tempMax: Math.round(data.daily?.temperature_2m_max?.[0] ?? current.temperature_2m ?? 0),
       pronostico,
+      pronosticoDiario,
       actualizadoEn: new Date().toISOString(),
     };
 

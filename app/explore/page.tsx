@@ -2,11 +2,16 @@
 
 import { useEffect, useMemo, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Search, SlidersHorizontal, X, Star, ArrowUpDown } from "lucide-react";
+import { Search, SlidersHorizontal, X, Star, ArrowUpDown, BookMarked } from "lucide-react";
 import { categoriaLabels } from "@/lib/categorias";
 import { ActivityCard } from "@/components/ActivityCard";
 import { cn } from "@/lib/utils";
+import { calcularDistanciaKm } from "@/lib/maps";
+import { capitalMasCercana, actividadesFallback } from "@/lib/capitalesRegionales";
 import type { Activity, ActivityCategory } from "@/lib/types";
+
+// Radio máximo (km) para considerar una actividad "en tu zona" cuando viene lat/lng.
+const RADIO_ZONA_KM = 100;
 
 export default function ExplorePage() {
   return (
@@ -33,6 +38,11 @@ function ExploreContent() {
   const searchParams = useSearchParams();
   const categoriaInicial = searchParams.get("categoria") as ActivityCategory | null;
   const busquedaInicial = searchParams.get("q") ?? "";
+  const latParam = parseFloat(searchParams.get("lat") ?? "");
+  const lngParam = parseFloat(searchParams.get("lng") ?? "");
+  const ciudadParam = searchParams.get("ciudad") ?? "";
+  const precioParam = searchParams.get("precio"); // "gratis" | null
+  const tieneUbicacion = !isNaN(latParam) && !isNaN(lngParam);
 
   const [actividades, setActividades] = useState<Activity[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -83,10 +93,56 @@ function ExploreContent() {
       filtradas = filtradas.filter((a) => categoriasSeleccionadas.includes(a.categoria));
     }
     if (soloDestacadas) filtradas = filtradas.filter((a) => a.destacada);
-    if (ordenarPor === "precio") filtradas.sort((a, b) => a.precio.valor - b.precio.valor);
-    else if (ordenarPor === "rating") filtradas.sort((a, b) => b.rating - a.rating);
+    // Filtro "Gratis" desde quickTag
+    if (precioParam === "gratis") filtradas = filtradas.filter((a) => a.precio.valor === 0);
+    // Filtro por zona cuando viene lat/lng: solo actividades dentro del radio
+    if (tieneUbicacion) {
+      filtradas = filtradas.filter(
+        (a) =>
+          calcularDistanciaKm(latParam, lngParam, a.ubicacion.lat, a.ubicacion.lng) <=
+          RADIO_ZONA_KM
+      );
+    }
+    // Ordenamiento
+    if (ordenarPor === "precio") {
+      filtradas.sort((a, b) => a.precio.valor - b.precio.valor);
+    } else if (ordenarPor === "rating") {
+      filtradas.sort((a, b) => b.rating - a.rating);
+    } else if (tieneUbicacion) {
+      // Ordenar por proximidad cuando viene lat/lng en la URL
+      filtradas.sort((a, b) => {
+        const da = calcularDistanciaKm(latParam, lngParam, a.ubicacion.lat, a.ubicacion.lng);
+        const db = calcularDistanciaKm(latParam, lngParam, b.ubicacion.lat, b.ubicacion.lng);
+        return da - db;
+      });
+    }
     return filtradas;
-  }, [actividades, busqueda, categoriasSeleccionadas, soloDestacadas, ordenarPor]);
+  }, [actividades, busqueda, categoriasSeleccionadas, soloDestacadas, ordenarPor, precioParam, tieneUbicacion, latParam, lngParam]);
+
+  // Fallback regional cuando viene lat/lng y no hay resultados en la DB dentro del radio.
+  const fallback = useMemo(() => {
+    if (!tieneUbicacion) return null;
+    const capital = capitalMasCercana(latParam, lngParam);
+    let acts = actividadesFallback(capital.nombre);
+    if (busqueda.trim()) {
+      const termino = busqueda.toLowerCase();
+      acts = acts.filter(
+        (a) =>
+          a.nombre.toLowerCase().includes(termino) ||
+          a.descripcion.toLowerCase().includes(termino) ||
+          a.tags.some((t) => t.toLowerCase().includes(termino)) ||
+          a.ubicacion.direccion.toLowerCase().includes(termino)
+      );
+    }
+    if (categoriasSeleccionadas.length > 0) {
+      acts = acts.filter((a) => categoriasSeleccionadas.includes(a.categoria));
+    }
+    if (precioParam === "gratis") acts = acts.filter((a) => a.precio.valor === 0);
+    return { capital, actividades: acts };
+  }, [tieneUbicacion, latParam, lngParam, busqueda, categoriasSeleccionadas, precioParam]);
+
+  const mostrandoFallback = tieneUbicacion && resultados.length === 0 && !!fallback && fallback.actividades.length > 0;
+  const ciudadEtiqueta = ciudadParam || (fallback ? fallback.capital.nombre : "");
 
   const filtrosActivos = categoriasSeleccionadas.length > 0 || soloDestacadas || busqueda.trim();
 
@@ -97,10 +153,18 @@ function ExploreContent() {
         <div>
           <p className="eyebrow mb-1">Explorar</p>
           <h1 className="font-display text-3xl sm:text-4xl font-bold text-ink-900 tracking-tight">
-            Todas las Actividades
+            {tieneUbicacion && ciudadEtiqueta
+              ? `Actividades en ${ciudadEtiqueta}`
+              : "Todas las Actividades"}
           </h1>
           <p className="mt-1 text-sm text-ink-500">
-            {cargando ? "Cargando..." : `${resultados.length} actividades disponibles`}
+            {cargando
+              ? "Cargando..."
+              : mostrandoFallback
+              ? `${fallback!.actividades.length} sugerencias para ${fallback!.capital.nombre}`
+              : `${resultados.length} actividades disponibles${
+                  tieneUbicacion ? " en tu zona" : ""
+                }`}
           </p>
         </div>
 
@@ -219,6 +283,22 @@ function ExploreContent() {
               <ActivityCard key={actividad.id} actividad={actividad} indice={i} />
             ))}
           </div>
+        ) : mostrandoFallback ? (
+          <>
+            <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+              <BookMarked className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-amber-800">
+                Sin actividades registradas en{" "}
+                <strong>{ciudadEtiqueta || fallback!.capital.nombre}</strong>. Mostrando sugerencias
+                para <strong>{fallback!.capital.nombre}</strong>.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 animate-stagger">
+              {fallback!.actividades.map((actividad, i) => (
+                <ActivityCard key={actividad.id} actividad={actividad} indice={i} />
+              ))}
+            </div>
+          </>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <Search className="h-12 w-12 text-ink-300 mb-4" />

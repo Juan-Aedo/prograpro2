@@ -22,7 +22,8 @@ function climaCambio(a: WeatherData | null, b: WeatherData): boolean {
     a.descripcion !== b.descripcion ||
     a.icono !== b.icono ||
     a.humedad !== b.humedad ||
-    a.viento !== b.viento
+    a.viento !== b.viento ||
+    a.ciudad !== b.ciudad
   );
 }
 
@@ -34,24 +35,36 @@ export function useWeather(climaInicial: WeatherData | null = null): UseWeatherR
   const [loading, setLoading] = useState(climaInicial === null);
   const [error, setError] = useState<string | null>(null);
   const climaRef = useRef<WeatherData | null>(climaInicial);
+  const requestIdRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
 
   const fetchClima = useCallback(async (latActual: number, lngActual: number) => {
+    // Cancelar request anterior y marcar el nuevo como el vigente
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const myId = ++requestIdRef.current;
+
     try {
       const res = await fetch(
         `/api/weather?lat=${latActual}&lng=${lngActual}`,
-        { cache: "no-store" }
+        { cache: "no-store", signal: controller.signal }
       );
       if (!res.ok) throw new Error("No se pudo obtener el clima");
       const data: WeatherData = await res.json();
+      // Descartar respuesta si ya no es la última solicitada
+      if (myId !== requestIdRef.current) return;
       if (climaCambio(climaRef.current, data)) {
         climaRef.current = data;
         setClima(data);
       }
       setError(null);
     } catch (e: unknown) {
+      if (e instanceof DOMException && e.name === "AbortError") return;
+      if (myId !== requestIdRef.current) return;
       setError(e instanceof Error ? e.message : "Error de clima");
     } finally {
-      setLoading(false);
+      if (myId === requestIdRef.current) setLoading(false);
     }
   }, []);
 
@@ -60,7 +73,10 @@ export function useWeather(climaInicial: WeatherData | null = null): UseWeatherR
     setLoading(true);
     fetchClima(lat, lng);
     const id = setInterval(() => fetchClima(lat, lng), POLL_INTERVAL_MS);
-    return () => clearInterval(id);
+    return () => {
+      clearInterval(id);
+      abortRef.current?.abort();
+    };
   }, [lat, lng, fetchClima]);
 
   return {

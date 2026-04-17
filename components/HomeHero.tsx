@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { WeatherData } from "@/lib/types";
 import { useWeather } from "@/lib/hooks/useWeather";
+import { useLocationStore } from "@/store/locationStore";
 
 interface HomeHeroProps {
   clima: WeatherData;
@@ -20,17 +21,19 @@ const iconosClima: Record<string, React.ElementType> = {
   "fog":           CloudFog,
 };
 
-const quickTags = [
-  { label: "Hoy",         href: "/explore?q=hoy" },
-  { label: "Gratis",      href: "/explore?q=gratis" },
-  { label: "Cerca de mí", href: "/map" },
-  { label: "Al aire libre", href: "/explore?categoria=aire-libre" },
-];
-
 export function HomeHero({ clima: climaInicial }: HomeHeroProps) {
   const [busqueda, setBusqueda] = useState("");
   const router = useRouter();
   const { clima: climaLive } = useWeather(climaInicial);
+  const lat = useLocationStore((s) => s.lat);
+  const lng = useLocationStore((s) => s.lng);
+
+  const quickTags = [
+    { label: "Hoy",           href: `/explore?q=hoy&lat=${lat}&lng=${lng}` },
+    { label: "Gratis",        href: `/explore?precio=gratis&lat=${lat}&lng=${lng}` },
+    { label: "Cerca de mí",   href: "/map" },
+    { label: "Al aire libre", href: `/explore?categoria=aire-libre&lat=${lat}&lng=${lng}` },
+  ];
   const clima = climaLive ?? climaInicial;
   const IconoClima = iconosClima[clima.icono] ?? Sun;
 

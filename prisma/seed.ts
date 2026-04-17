@@ -10,7 +10,7 @@ const actividades = [
     descripcion:
       "Disfruta del esperado estreno de Dune: Parte 3 en sala IMAX con sonido Dolby Atmos. Una experiencia cinematográfica inmersiva que no te puedes perder.",
     categoria: "cine",
-    imagen: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&q=80",
+    imagen: "/panoramas/dune-3-cine-hoyts.png",
     direccion: "Av. Kennedy 5413, Las Condes",
     lat: -33.3988,
     lng: -70.5754,
@@ -33,7 +33,7 @@ const actividades = [
     descripcion:
       "Un hermoso parque urbano ideal para hacer picnic, pasear con mascotas o simplemente relajarte junto al lago. Cuenta con áreas verdes, juegos infantiles y senderos para caminar.",
     categoria: "parques",
-    imagen: "https://images.unsplash.com/photo-1585938389612-a552a28d6914?w=800&q=80",
+    imagen: "/panoramas/parque-bicentenario.jpeg",
     direccion: "Av. Bicentenario 3800, Vitacura",
     lat: -33.3954,
     lng: -70.5985,
@@ -56,7 +56,7 @@ const actividades = [
     descripcion:
       "Presentación de la ópera clásica de Verdi interpretada por el elenco del Teatro Municipal de Santiago. Una velada elegante con música de clase mundial.",
     categoria: "teatro",
-    imagen: "https://images.unsplash.com/photo-1507924538820-ede94a04019d?w=800&q=80",
+    imagen: "/panoramas/teatro-municipal.jpg",
     direccion: "Agustinas 794, Santiago Centro",
     lat: -33.4417,
     lng: -70.6505,
@@ -79,7 +79,7 @@ const actividades = [
     descripcion:
       "Exposición temporal 'Futuros Posibles' — una colección de artistas latinoamericanos que exploran la relación entre tecnología y naturaleza a través de instalaciones interactivas.",
     categoria: "museos",
-    imagen: "https://images.unsplash.com/photo-1554907984-15263bfd63bd?w=800&q=80",
+    imagen: "/panoramas/museo-arte-contemporaneo.jpg",
     direccion: "Parque Forestal s/n, Santiago Centro",
     lat: -33.4372,
     lng: -70.6422,
@@ -102,7 +102,7 @@ const actividades = [
     descripcion:
       "Cena de degustación en uno de los mejores restaurantes de Latinoamérica. Cocina de autor con ingredientes endémicos chilenos en un ambiente sofisticado.",
     categoria: "gastronomia",
-    imagen: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80",
+    imagen: "/panoramas/borago.jpg",
     direccion: "Av. San Josemaría Escrivá de Balaguer 5970, Vitacura",
     lat: -33.3835,
     lng: -70.5672,
@@ -125,7 +125,7 @@ const actividades = [
     descripcion:
       "Centro de escalada con muros de diferentes niveles de dificultad. Incluye equipamiento, clase introductoria para principiantes y zona de boulder.",
     categoria: "deportes",
-    imagen: "https://images.unsplash.com/photo-1522163182402-834f871fd851?w=800&q=80",
+    imagen: "/panoramas/entrenamiento-de-escalada.jpg",
     direccion: "Av. Italia 1234, Providencia",
     lat: -33.4445,
     lng: -70.6157,
@@ -148,7 +148,7 @@ const actividades = [
     descripcion:
       "Festival al aire libre con bandas de jazz nacionales e internacionales. Trae tu manta, disfruta de food trucks y música en vivo bajo las estrellas.",
     categoria: "musica",
-    imagen: "https://images.unsplash.com/photo-1511192336575-5a79af67a629?w=800&q=80",
+    imagen: "/panoramas/festival-jazz.jpg",
     direccion: "Parque O'Higgins, Santiago",
     lat: -33.4625,
     lng: -70.6555,
@@ -171,7 +171,7 @@ const actividades = [
     descripcion:
       "Aprende técnicas de cerámica en torno y modelado a mano. Incluye materiales, horneado de piezas y una bebida caliente. Ideal para desconectarte de la rutina.",
     categoria: "talleres",
-    imagen: "https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=800&q=80",
+    imagen: "/panoramas/taller-ceramica.jpg",
     direccion: "Constitución 62, Providencia",
     lat: -33.4267,
     lng: -70.6162,
@@ -194,7 +194,7 @@ const actividades = [
     descripcion:
       "Aventura de medio día en kayak por los rápidos del río Maipo. Incluye transporte, equipamiento completo, guía certificado y snack energético.",
     categoria: "aire-libre",
-    imagen: "https://images.unsplash.com/photo-1472745942893-4b9f730c7668?w=800&q=80",
+    imagen: "/panoramas/kayak.jpg",
     direccion: "Camino al Volcán km 25, San José de Maipo",
     lat: -33.6389,
     lng: -70.3533,
@@ -217,7 +217,7 @@ const actividades = [
     descripcion:
       "Bar secreto con entrada oculta. Cócteles de autor preparados por mixólogos premiados en un ambiente de los años 20. Reserva obligatoria.",
     categoria: "nightlife",
-    imagen: "https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=800&q=80",
+    imagen: "/panoramas/speakeasy-providencia.jpg",
     direccion: "Bombero Ossa 1010, Santiago Centro",
     lat: -33.4396,
     lng: -70.6445,
