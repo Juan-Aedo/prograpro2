@@ -7,7 +7,7 @@ import { categoriaLabels } from "@/lib/categorias";
 import { ActivityCard } from "@/components/ActivityCard";
 import { cn } from "@/lib/utils";
 import { calcularDistanciaKm } from "@/lib/maps";
-import { capitalMasCercana, actividadesFallback } from "@/lib/capitalesRegionales";
+import { fallbackActividadesPara } from "@/lib/capitalesRegionales";
 import type { Activity, ActivityCategory } from "@/lib/types";
 
 // Radio máximo (km) para considerar una actividad "en tu zona" cuando viene lat/lng.
@@ -122,23 +122,11 @@ function ExploreContent() {
   // Fallback regional cuando viene lat/lng y no hay resultados en la DB dentro del radio.
   const fallback = useMemo(() => {
     if (!tieneUbicacion) return null;
-    const capital = capitalMasCercana(latParam, lngParam);
-    let acts = actividadesFallback(capital.nombre);
-    if (busqueda.trim()) {
-      const termino = busqueda.toLowerCase();
-      acts = acts.filter(
-        (a) =>
-          a.nombre.toLowerCase().includes(termino) ||
-          a.descripcion.toLowerCase().includes(termino) ||
-          a.tags.some((t) => t.toLowerCase().includes(termino)) ||
-          a.ubicacion.direccion.toLowerCase().includes(termino)
-      );
-    }
-    if (categoriasSeleccionadas.length > 0) {
-      acts = acts.filter((a) => categoriasSeleccionadas.includes(a.categoria));
-    }
-    if (precioParam === "gratis") acts = acts.filter((a) => a.precio.valor === 0);
-    return { capital, actividades: acts };
+    return fallbackActividadesPara(latParam, lngParam, {
+      busqueda,
+      categorias: categoriasSeleccionadas,
+      precioGratis: precioParam === "gratis",
+    });
   }, [tieneUbicacion, latParam, lngParam, busqueda, categoriasSeleccionadas, precioParam]);
 
   const mostrandoFallback = tieneUbicacion && resultados.length === 0 && !!fallback && fallback.actividades.length > 0;

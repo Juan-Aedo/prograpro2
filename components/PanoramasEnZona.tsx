@@ -1,22 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useMemo } from "react";
-import { MapPin, Loader2, CloudRain, Sun, Cloud, CloudLightning, Snowflake, BookMarked } from "lucide-react";
+import { MapPin, Loader2, BookMarked } from "lucide-react";
 import { useLocationStore } from "@/store/locationStore";
 import { useUserStore } from "@/store/userStore";
 import { useRecommendations } from "@/lib/hooks/useRecommendations";
 import { ActivityCard } from "@/components/ActivityCard";
-import { capitalMasCercana, actividadesFallback } from "@/lib/capitalesRegionales";
-
-const iconosClima: Record<string, React.ElementType> = {
-  "clear": Sun,
-  "partly-cloudy": Cloud,
-  "cloudy": Cloud,
-  "rain": CloudRain,
-  "storm": CloudLightning,
-  "snow": Snowflake,
-  "fog": Cloud,
-};
+import { fallbackActividadesPara } from "@/lib/capitalesRegionales";
+import { iconoParaClima } from "@/lib/iconMap";
 
 export function PanoramasEnZona() {
   const lat = useLocationStore((s) => s.lat);
@@ -29,10 +20,7 @@ export function PanoramasEnZona() {
   const lastKey = useRef<string>("");
 
   // Fallback: actividades predefinidas para la capital regional más cercana
-  const fallback = useMemo(() => {
-    const capital = capitalMasCercana(lat, lng);
-    return { capital, actividades: actividadesFallback(capital.nombre) };
-  }, [lat, lng]);
+  const fallback = useMemo(() => fallbackActividadesPara(lat, lng), [lat, lng]);
 
   useEffect(() => {
     const key = `${lat}|${lng}|${preferencias.join(",")}`;
@@ -48,7 +36,7 @@ export function PanoramasEnZona() {
   }, [lat, lng, preferencias, fetchRec]);
 
   const clima = data?.clima;
-  const IconoClima = clima ? (iconosClima[clima.icono] ?? Sun) : Sun;
+  const IconoClima = iconoParaClima(clima?.icono);
 
   return (
     <section>

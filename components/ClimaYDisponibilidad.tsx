@@ -1,21 +1,10 @@
 "use client";
 
-import {
-  Sun, CloudSun, Cloud, CloudRain, CloudLightning, Snowflake, CloudFog,
-  Check, X, CloudDrizzle,
-} from "lucide-react";
+import { memo } from "react";
+import { Check, X, CloudDrizzle } from "lucide-react";
 import { useWeather } from "@/lib/hooks/useWeather";
+import { iconoParaClima } from "@/lib/iconMap";
 import type { Activity, WeatherDayForecast } from "@/lib/types";
-
-const iconosClima: Record<string, React.ElementType> = {
-  "clear":         Sun,
-  "partly-cloudy": CloudSun,
-  "cloudy":        Cloud,
-  "rain":          CloudRain,
-  "storm":         CloudLightning,
-  "snow":          Snowflake,
-  "fog":           CloudFog,
-};
 
 const DIA_A_NUM: Record<string, number> = {
   Domingo: 0,
@@ -33,12 +22,12 @@ interface Props {
   actividad: Activity;
 }
 
-function DayCard({ dia, diasDisponibles }: { dia: WeatherDayForecast; diasDisponibles: string[] }) {
+const DayCard = memo(function DayCard({ dia, diasDisponibles }: { dia: WeatherDayForecast; diasDisponibles: string[] }) {
   const diaSemana = new Date(dia.fecha + "T12:00:00").getDay();
   const estaAbierto = diasDisponibles.some((d) => DIA_A_NUM[d] === diaSemana);
   const lluviaOTormenta = estaAbierto && MAL_CLIMA.has(dia.icono);
 
-  const Icono = iconosClima[dia.icono] ?? Sun;
+  const Icono = iconoParaClima(dia.icono);
   const diaNum = dia.fecha.split("-")[2] ?? "";
 
   return (
@@ -72,7 +61,7 @@ function DayCard({ dia, diasDisponibles }: { dia: WeatherDayForecast; diasDispon
       )}
     </div>
   );
-}
+});
 
 export function ClimaYDisponibilidad({ actividad }: Props) {
   const { clima, loading } = useWeather();

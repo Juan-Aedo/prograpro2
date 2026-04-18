@@ -185,3 +185,40 @@ export function capitalMasCercana(lat: number, lng: number): CapitalRegional {
 export function actividadesFallback(nombreCapital: string): Activity[] {
   return ACTIVIDADES_FALLBACK[nombreCapital] ?? ACTIVIDADES_FALLBACK["Santiago"] ?? [];
 }
+
+// ── Resolución unificada: capital + actividades fallback con filtros opcionales ──
+
+export interface FallbackFiltros {
+  categorias?: readonly string[];
+  busqueda?: string;
+  precioGratis?: boolean;
+}
+
+export function fallbackActividadesPara(
+  lat: number,
+  lng: number,
+  filtros: FallbackFiltros = {}
+): { capital: CapitalRegional; actividades: Activity[] } {
+  const capital = capitalMasCercana(lat, lng);
+  let acts = actividadesFallback(capital.nombre);
+
+  const termino = filtros.busqueda?.trim().toLowerCase();
+  if (termino) {
+    acts = acts.filter(
+      (a) =>
+        a.nombre.toLowerCase().includes(termino) ||
+        a.descripcion.toLowerCase().includes(termino) ||
+        a.tags.some((t) => t.toLowerCase().includes(termino)) ||
+        a.ubicacion.direccion.toLowerCase().includes(termino)
+    );
+  }
+  if (filtros.categorias && filtros.categorias.length > 0) {
+    const cats = filtros.categorias;
+    acts = acts.filter((a) => cats.includes(a.categoria));
+  }
+  if (filtros.precioGratis) {
+    acts = acts.filter((a) => a.precio.valor === 0);
+  }
+
+  return { capital, actividades: acts };
+}

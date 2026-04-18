@@ -1,20 +1,8 @@
 "use client";
 
-import {
-  Sun, CloudSun, Cloud, CloudRain, CloudLightning, Snowflake, CloudFog,
-  Droplets, Wind,
-} from "lucide-react";
+import { Sun, Droplets, Wind } from "lucide-react";
 import type { WeatherData } from "@/lib/types";
-
-const iconosClima: Record<string, React.ElementType> = {
-  "clear":         Sun,
-  "partly-cloudy": CloudSun,
-  "cloudy":        Cloud,
-  "rain":          CloudRain,
-  "storm":         CloudLightning,
-  "snow":          Snowflake,
-  "fog":           CloudFog,
-};
+import { iconoParaClima } from "@/lib/iconMap";
 
 interface WeatherBadgeProps {
   clima: WeatherData;
@@ -22,7 +10,7 @@ interface WeatherBadgeProps {
 }
 
 export function WeatherBadge({ clima, compacto = false }: WeatherBadgeProps) {
-  const IconoClima = iconosClima[clima.icono] ?? Sun;
+  const IconoClima = iconoParaClima(clima.icono);
 
   if (compacto) {
     return (
@@ -83,7 +71,7 @@ export function WeatherBadge({ clima, compacto = false }: WeatherBadgeProps) {
           <p className="eyebrow mb-3">Pronóstico de hoy</p>
           <div className="flex gap-2 overflow-x-auto pb-1">
             {clima.pronostico.map((item, i) => {
-              const Icono = iconosClima[item.icono] ?? Sun;
+              const Icono = iconoParaClima(item.icono);
               return (
                 <div
                   key={`${item.hora}-${i}`}

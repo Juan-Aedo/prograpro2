@@ -1,25 +1,16 @@
 "use client";
 
-import { Search, Sun, CloudSun, Cloud, CloudRain, CloudLightning, Snowflake, CloudFog, MapPin } from "lucide-react";
+import { Search, MapPin } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { WeatherData } from "@/lib/types";
 import { useWeather } from "@/lib/hooks/useWeather";
 import { useLocationStore } from "@/store/locationStore";
+import { iconoParaClima } from "@/lib/iconMap";
 
 interface HomeHeroProps {
   clima: WeatherData;
 }
-
-const iconosClima: Record<string, React.ElementType> = {
-  "clear":         Sun,
-  "partly-cloudy": CloudSun,
-  "cloudy":        Cloud,
-  "rain":          CloudRain,
-  "storm":         CloudLightning,
-  "snow":          Snowflake,
-  "fog":           CloudFog,
-};
 
 export function HomeHero({ clima: climaInicial }: HomeHeroProps) {
   const [busqueda, setBusqueda] = useState("");
@@ -35,7 +26,7 @@ export function HomeHero({ clima: climaInicial }: HomeHeroProps) {
     { label: "Al aire libre", href: `/explore?categoria=aire-libre&lat=${lat}&lng=${lng}` },
   ];
   const clima = climaLive ?? climaInicial;
-  const IconoClima = iconosClima[clima.icono] ?? Sun;
+  const IconoClima = iconoParaClima(clima.icono);
 
   const handleBusqueda = (e: React.FormEvent) => {
     e.preventDefault();
