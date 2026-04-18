@@ -1,40 +1,53 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: panoramas-db
+    container_name: prograpro2
     restart: unless-stopped
     environment:
-      POSTGRES_USER: panoramas
-      POSTGRES_PASSWORD: panoramas
-      POSTGRES_DB: panoramas
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: panorama_db
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
-      - panoramas_pgdata:/var/lib/postgresql/data
+      - panorama_db_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U panoramas -d panoramas"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d panorama_db"]
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - panorama_net
 
   app:
     build:
       context: .
       args:
+        # Solo NEXT_PUBLIC_* se inyecta en build (queda en el bundle del cliente).
         NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
     container_name: panoramas-app
     restart: unless-stopped
+    init: true
     ports:
       - "3000:3000"
     depends_on:
       postgres:
         condition: service_healthy
+    # Secretos del servidor (JWT_SECRET, GOOGLE_PLACES_API_KEY, ...) se cargan
+    # en runtime desde .env y nunca se incrustan en la imagen.
+    env_file:
+      - .env
     environment:
-      DATABASE_URL: postgresql://panoramas:panoramas@postgres:5432/panoramas
-      JWT_SECRET: ${JWT_SECRET}
-      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      # Dentro de la red de Docker, postgres se resuelve por el nombre del servicio.
+      # Sobrescribe el DATABASE_URL del .env (que apunta a localhost para el host).
+      DATABASE_URL: ${DATABASE_URL_DOCKER}
+    networks:
+      - panorama_net
 
 volumes:
-  panoramas_pgdata:
+  panorama_db_pgdata:
+
+networks:
+  panorama_net:
+    driver: bridge

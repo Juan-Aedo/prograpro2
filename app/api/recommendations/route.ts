@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { serializeActivity } from "@/lib/serializers";
 import { obtenerClima } from "@/lib/weather";
+import { buscarLugaresGoogle } from "@/lib/places";
 import {
   calcularDistanciaKm,
   formatearDistancia,
@@ -170,13 +171,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. Clima actual desde Open-Meteo (gratis)
-    const clima = await obtenerClima(lat, lng);
+    // 1. Clima + actividades de DB + lugares de Google Places en paralelo
+    const radioParaGoogle = radio > 0 ? radio : 50000;
+    const [clima, actividadesRaw, lugaresGoogle] = await Promise.all([
+      obtenerClima(lat, lng),
+      prisma.activity.findMany(),
+      buscarLugaresGoogle(lat, lng, radioParaGoogle, preferencias),
+    ]);
     const radioKm = radio / 1000;
 
-    // 2. Cargar actividades desde DB y filtrar por presupuesto
-    const actividadesRaw = await prisma.activity.findMany();
-    let candidatos: Activity[] = actividadesRaw.map(serializeActivity);
+    // 2. Combinar fuentes y filtrar por presupuesto
+    let candidatos: Activity[] = [
+      ...actividadesRaw.map(serializeActivity),
+      ...lugaresGoogle,
+    ];
     if (presupuestoMax !== undefined) {
       candidatos = candidatos.filter(
         (a) => a.precio.valor === 0 || a.precio.valor <= presupuestoMax

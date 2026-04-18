@@ -394,7 +394,7 @@ export function rankCategoriasPorClima(
     scores.set(regla.categoria, Math.max(prev, puntos));
   }
 
-  return [...scores.entries()]
+  return Array.from(scores.entries())
     .sort((a, b) => b[1] - a[1])
     .map(([cat]) => cat);
 }
