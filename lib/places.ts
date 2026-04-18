@@ -1,6 +1,8 @@
 import type { Activity, ActivityCategory } from "@/lib/types";
 
-const PLACES_API_URL = "https://places.googleapis.com/v1/places:searchNearby";
+const PLACES_API_BASE = process.env.GOOGLE_PLACES_API_BASE ?? "";
+const PLACES_API_URL = `${PLACES_API_BASE}/places:searchNearby`;
+const PLACE_DETAILS_URL = `${PLACES_API_BASE}/places`;
 
 const FIELD_MASK = [
   "places.id",
@@ -18,6 +20,24 @@ const FIELD_MASK = [
   "places.iconMaskBaseUri",
   "places.iconBackgroundColor",
   "places.googleMapsUri",
+].join(",");
+
+const DETAILS_FIELD_MASK = [
+  "id",
+  "displayName",
+  "formattedAddress",
+  "location",
+  "types",
+  "primaryType",
+  "primaryTypeDisplayName",
+  "rating",
+  "userRatingCount",
+  "regularOpeningHours",
+  "photos",
+  "priceLevel",
+  "iconMaskBaseUri",
+  "iconBackgroundColor",
+  "googleMapsUri",
 ].join(",");
 
 const TYPE_TO_CATEGORY: Array<[string, ActivityCategory]> = [
@@ -275,7 +295,7 @@ export async function buscarLugaresGoogle(
   categorias: ActivityCategory[]
 ): Promise<Activity[]> {
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
-  if (!apiKey) return [];
+  if (!apiKey || !PLACES_API_BASE) return [];
 
   const key = cacheKey(lat, lng, radio, categorias);
   const cached = cache.get(key);
@@ -329,5 +349,36 @@ export async function buscarLugaresGoogle(
   } catch (err) {
     console.warn("[places] error consultando Google Places", err);
     return [];
+  }
+}
+
+const detailsCache = new Map<string, { ts: number; data: Activity | null }>();
+
+export async function obtenerLugarGoogle(placeId: string): Promise<Activity | null> {
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+  if (!apiKey || !PLACES_API_BASE || !placeId) return null;
+
+  const cached = detailsCache.get(placeId);
+  if (cached && Date.now() - cached.ts < TTL_MS) return cached.data;
+
+  try {
+    const res = await fetch(`${PLACE_DETAILS_URL}/${encodeURIComponent(placeId)}?languageCode=es`, {
+      headers: {
+        "X-Goog-Api-Key": apiKey,
+        "X-Goog-FieldMask": DETAILS_FIELD_MASK,
+      },
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!res.ok) {
+      console.warn("[places] details HTTP", res.status);
+      return null;
+    }
+    const place = (await res.json()) as GooglePlace;
+    const act = placeAActivity(place);
+    detailsCache.set(placeId, { ts: Date.now(), data: act });
+    return act;
+  } catch (err) {
+    console.warn("[places] error consultando detalles", err);
+    return null;
   }
 }

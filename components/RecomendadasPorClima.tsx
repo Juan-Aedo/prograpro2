@@ -118,7 +118,6 @@ export function RecomendadasPorClima() {
                     key={actividad.id}
                     actividad={actividad}
                     indice={i}
-                    href="/explore"
                   />
                 ))}
               </div>

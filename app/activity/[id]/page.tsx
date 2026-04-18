@@ -12,6 +12,17 @@ import dynamicImport from "next/dynamic";
 import { CrowdIndicator } from "@/components/CrowdIndicator";
 import { MapWidget } from "@/components/MapWidget";
 import { BookingForm } from "@/components/BookingForm";
+import { ACTIVIDADES_FALLBACK } from "@/lib/capitalesRegionales";
+import { obtenerLugarGoogle } from "@/lib/places";
+import type { Activity } from "@/lib/types";
+
+function buscarFallback(id: string): Activity | null {
+  for (const acts of Object.values(ACTIVIDADES_FALLBACK)) {
+    const hit = acts.find((a) => a.id === id);
+    if (hit) return hit;
+  }
+  return null;
+}
 
 const ClimaYDisponibilidad = dynamicImport(
   () => import("@/components/ClimaYDisponibilidad").then((m) => m.ClimaYDisponibilidad),
@@ -25,9 +36,16 @@ interface Props {
 export const dynamic = "force-dynamic";
 
 export default async function ActivityDetailPage({ params }: Props) {
-  const row = await prisma.activity.findUnique({ where: { id: params.id } });
-  if (!row) notFound();
-  const actividad = serializeActivity(row);
+  let actividad: Activity | null = null;
+
+  if (params.id.startsWith("gplace:")) {
+    actividad = await obtenerLugarGoogle(params.id.slice("gplace:".length));
+  } else {
+    const row = await prisma.activity.findUnique({ where: { id: params.id } });
+    actividad = row ? serializeActivity(row) : buscarFallback(params.id);
+  }
+
+  if (!actividad) notFound();
 
   return (
     <div className="pb-24 md:pb-8">

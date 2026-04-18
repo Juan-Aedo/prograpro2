@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
-  if (!apiKey) {
+  const apiBase = process.env.GOOGLE_PLACES_API_BASE;
+  if (!apiKey || !apiBase) {
     return new NextResponse("Places API no configurada", { status: 404 });
   }
 
@@ -14,7 +15,7 @@ export async function GET(req: NextRequest) {
     return new NextResponse("Parámetro 'name' inválido", { status: 400 });
   }
 
-  const upstreamUrl = `https://places.googleapis.com/v1/${name}/media?maxWidthPx=${w}&key=${apiKey}`;
+  const upstreamUrl = `${apiBase}/${name}/media?maxWidthPx=${w}&key=${apiKey}`;
 
   try {
     const upstream = await fetch(upstreamUrl, {
